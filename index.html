@@ -1,0 +1,1533 @@
+<!DOCTYPE html>
+<!--
+  GlucoLog: jurnal personal de diabet
+  © 2026 Constantin Enache. Toate drepturile rezervate.
+  Cod proprietar, oferit gratuit pentru uz personal și necomercial.
+  Utilizarea comercială (vânzare, abonament, reclame etc.), copierea,
+  modificarea sau republicarea sub alt nume sunt INTERZISE fără acordul
+  scris al autorului. Detalii în fișierul LICENSE.
+-->
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#12242E">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>GlucoLog: jurnal de diabet</title>
+<style>
+html[data-theme="dark"]{
+  --ink:#E8EEF1; --ink-soft:#9CB0BA; --paper:#0F1B22; --card:#17262F;
+  --line:#2A3B45; --petrol:#33ADA9; --petrol-soft:#123A3A;
+  --low:#F06A6A; --ok:#3FBF85; --high:#E8AC3F; --vhigh:#E06A48;
+  --shadow:0 1px 3px rgba(0,0,0,.35), 0 4px 14px rgba(0,0,0,.28);
+}
+html[data-theme="dark"] .chip{background:var(--card)}
+html[data-theme="dark"] .inp{background:var(--card)}
+html[data-theme="dark"] #banner{background:#3A3216; border-color:#6B5A1E; color:#EAD79A}
+html[data-theme="dark"] #topbar{background:#0A141A; border-bottom:1px solid var(--line)}
+:root{
+  --ink:#12242E;          /* albastru-cerneală profund */
+  --ink-soft:#3C5260;
+  --paper:#F2F6F7;        /* porțelan rece */
+  --card:#FFFFFF;
+  --line:#DDE6E9;
+  --petrol:#0E7C7B;       /* accent principal */
+  --petrol-soft:#E0F0EF;
+  --low:#D64545;          /* hipo */
+  --ok:#2E9E6B;           /* în țintă */
+  --high:#DF9A22;         /* peste țintă */
+  --vhigh:#C94F30;        /* mult peste */
+  --r:16px;
+  --shadow:0 1px 3px rgba(18,36,46,.08), 0 4px 14px rgba(18,36,46,.06);
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+html,body{margin:0; padding:0; background:var(--paper); color:var(--ink);
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; font-size:16px; line-height:1.45}
+button{font:inherit; color:inherit; background:none; border:none; cursor:pointer}
+input,select,textarea{font:inherit; color:var(--ink)}
+h1,h2,h3{margin:0; line-height:1.2}
+.num{font-variant-numeric:tabular-nums}
+
+/* ---------- cadru ---------- */
+#topbar{position:sticky; top:0; z-index:30; background:var(--ink); color:#fff;
+  padding:calc(10px + env(safe-area-inset-top)) 18px 10px; display:flex; align-items:baseline; justify-content:space-between}
+#topbar .brand{font-weight:800; letter-spacing:.3px; font-size:17px}
+#topbar .brand span{color:#7FD1C8}
+#topbar .who{font-size:13px; opacity:.85}
+main{max-width:560px; margin:0 auto; padding:14px 14px calc(96px + env(safe-area-inset-bottom))}
+.view{display:none}
+.view.on{display:block}
+
+#tabs{position:fixed; bottom:0; left:0; right:0; z-index:30; background:var(--card);
+  border-top:1px solid var(--line); display:flex; padding-bottom:env(safe-area-inset-bottom)}
+#tabs button{flex:1; padding:9px 2px 8px; font-size:11.5px; color:var(--ink-soft); display:flex; flex-direction:column; align-items:center; gap:3px}
+#tabs button .ico{font-size:20px; line-height:1}
+#tabs button.on{color:var(--petrol); font-weight:700}
+
+/* ---------- carduri ---------- */
+.card{background:var(--card); border-radius:var(--r); box-shadow:var(--shadow); padding:16px; margin-bottom:12px}
+.card h2{font-size:13px; text-transform:uppercase; letter-spacing:.8px; color:var(--ink-soft); margin-bottom:10px; font-weight:700}
+.muted{color:var(--ink-soft); font-size:13px}
+.card p.muted{text-align:left; line-height:1.55; font-size:12.5px; letter-spacing:.1px}
+.stat span{line-height:1.3}
+.spread{display:flex; justify-content:space-between; align-items:center; gap:10px}
+
+/* ---------- eroul „Acum" ---------- */
+#hero{display:flex; gap:16px; align-items:center}
+#dial{position:relative; width:118px; height:118px; flex:none}
+#dial svg{transform:rotate(-90deg)}
+#dial .v{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center}
+#dial .v b{font-size:34px; font-weight:800; letter-spacing:-1px}
+#dial .v small{font-size:10.5px; color:var(--ink-soft); margin-top:-2px}
+#hero .side{flex:1}
+#hero .delta{font-size:14px; font-weight:700; margin-bottom:2px}
+#hero .ago{font-size:13px; color:var(--ink-soft)}
+.mini3{display:flex; gap:8px; margin-top:12px}
+.mini3 div{flex:1; background:var(--paper); border-radius:12px; padding:8px 6px; text-align:center}
+.mini3 b{display:block; font-size:16px; font-weight:800}
+.mini3 span{font-size:10.5px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.4px}
+#spark{margin-top:12px}
+#spark svg{width:100%; height:76px; display:block}
+
+/* ---------- butoane adăugare ---------- */
+#quick{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:2px 0 14px}
+#quick button{background:var(--card); border-radius:14px; box-shadow:var(--shadow);
+  padding:12px 4px; display:flex; flex-direction:column; align-items:center; gap:5px; font-size:12px; font-weight:600; min-height:66px}
+#quick button .ico{width:30px; height:30px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:17px; color:#fff}
+.i-gluc{background:var(--petrol)} .i-meal{background:#B0672E} .i-ins{background:#3F5E8C} .i-note{background:#6B7A85}
+
+/* ---------- cronologie ---------- */
+.daypart{margin:16px 4px 8px; font-size:12px; font-weight:800; letter-spacing:1px; text-transform:uppercase; color:var(--ink-soft);
+  display:flex; align-items:center; gap:10px}
+.daypart::after{content:""; flex:1; height:1px; background:var(--line)}
+.ev{background:var(--card); border-radius:14px; box-shadow:var(--shadow); padding:11px 13px; margin-bottom:8px;
+  display:flex; gap:11px; align-items:flex-start; width:100%; text-align:left}
+.ev .t{font-size:12.5px; color:var(--ink-soft); flex:none; width:44px; padding-top:2px; font-weight:600}
+.ev .body{flex:1; min-width:0}
+.ev .hl{font-weight:700; font-size:15px}
+.ev .sub{font-size:13px; color:var(--ink-soft); margin-top:1px; overflow-wrap:anywhere}
+.pill{display:inline-block; padding:1px 9px; border-radius:99px; font-size:12.5px; font-weight:800; color:#fff}
+.p-low{background:var(--low)} .p-ok{background:var(--ok)} .p-high{background:var(--high)} .p-vhigh{background:var(--vhigh)}
+.empty{padding:26px 14px; text-align:center; color:var(--ink-soft); font-size:14px}
+.mealsum{display:flex; align-items:center; gap:8px; margin:-2px 0 8px 55px; padding:7px 13px;
+  background:var(--petrol-soft); border-radius:11px; font-size:13.5px; color:#0B5C5B; font-weight:700}
+.mealsum .lbl{font-weight:600; color:#3C6B6A}
+.mealsum b{font-size:15px}
+
+/* ---------- formulare / foi ---------- */
+#veil{position:fixed; inset:0; background:rgba(18,36,46,.45); z-index:40; display:none}
+#veil.on{display:block}
+#sheet{position:fixed; left:0; right:0; bottom:0; z-index:41; background:var(--card);
+  border-radius:22px 22px 0 0; padding:18px 18px calc(18px + env(safe-area-inset-bottom));
+  max-height:88vh; overflow-y:auto; transform:translateY(105%); transition:transform .22s ease}
+#sheet.on{transform:none}
+#sheet h3{font-size:18px; font-weight:800; margin-bottom:14px}
+.frow{margin-bottom:13px}
+.frow label{display:block; font-size:12.5px; font-weight:700; color:var(--ink-soft); margin-bottom:5px; text-transform:uppercase; letter-spacing:.5px}
+.inp{width:100%; border:1.5px solid var(--line); border-radius:12px; padding:11px 12px; font-size:16px; background:#fff}
+.inp:focus{outline:none; border-color:var(--petrol)}
+.bignum{font-size:30px; font-weight:800; text-align:center; letter-spacing:-.5px}
+.rowflex{display:flex; gap:8px}
+.rowflex>*{flex:1}
+.chips{display:flex; gap:7px; flex-wrap:wrap}
+.chip{border:1.5px solid var(--line); border-radius:99px; padding:7px 14px; font-size:14px; font-weight:600; background:#fff}
+.chip.on{background:var(--petrol); border-color:var(--petrol); color:#fff}
+.btn{display:block; width:100%; padding:14px; border-radius:14px; font-size:16px; font-weight:800; text-align:center}
+.btn-p{background:var(--petrol); color:#fff}
+.btn-g{background:var(--paper); color:var(--ink); margin-top:8px}
+.btn-d{background:none; color:var(--low); margin-top:6px; font-weight:700; font-size:14px}
+.btn-danger{background:var(--low); color:#fff}
+.btn[disabled]{opacity:.45}
+
+/* compunere masă */
+#mitems .mi{display:flex; align-items:center; gap:8px; padding:8px 0; border-bottom:1px dashed var(--line)}
+#mitems .mi b{flex:1; font-size:14.5px; font-weight:600}
+#mitems .mi .hc{font-weight:800; color:#B0672E}
+#mitems .mi button{color:var(--low); font-size:17px; padding:2px 6px}
+#mtotal{text-align:right; font-size:17px; font-weight:800; margin:8px 0 4px; color:#B0672E}
+.foodhit{display:flex; justify-content:space-between; width:100%; padding:11px 4px; border-bottom:1px solid var(--line); text-align:left; font-size:15px}
+.foodhit small{color:var(--ink-soft)}
+#gramveil{position:fixed; inset:0; background:rgba(18,36,46,.55); z-index:50; display:none; align-items:center; justify-content:center; padding:24px}
+#gramveil.on{display:flex}
+#grambox{background:var(--card); border-radius:20px; padding:20px 20px 18px; width:100%; max-width:340px; box-shadow:0 8px 40px rgba(0,0,0,.3)}
+#grambox h3{font-size:17px; font-weight:800; margin-bottom:4px}
+#grambox .sub{font-size:13px; color:var(--ink-soft); margin-bottom:14px}
+#grambox .hcprev{text-align:center; font-size:13px; color:#B0672E; font-weight:700; min-height:18px; margin-top:8px}
+#grambox .acts{display:flex; gap:8px; margin-top:16px}
+#grambox .acts button{flex:1; padding:13px; border-radius:13px; font-size:15px; font-weight:800}
+#grambox .cancel{background:var(--paper); color:var(--ink)}
+#grambox .ok{background:var(--petrol); color:#fff}
+
+/* alimente */
+.fooditem{display:flex; align-items:center; gap:10px; padding:12px 2px; border-bottom:1px solid var(--line); width:100%; text-align:left}
+.fooditem .star{font-size:19px; color:#D9A400; flex:none}
+.fooditem .txt{flex:1; min-width:0}
+.fooditem .n{display:block; font-weight:600; font-size:15px}
+.fooditem .d{display:block; font-size:12.5px; color:var(--ink-soft); margin-top:2px}
+
+/* istoric */
+#hsearch{position:sticky; top:calc(46px + env(safe-area-inset-top)); z-index:20; background:var(--paper); padding:6px 0 10px}
+.dayhead{margin:14px 4px 6px; font-weight:800; font-size:14px; display:flex; justify-content:space-between; align-items:baseline}
+.dayhead .muted{font-weight:600}
+
+/* statistici */
+.statgrid{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+.stat{background:var(--paper); border-radius:12px; padding:11px; text-align:center}
+.stat{min-width:0; overflow:hidden}
+.stat b{display:block; font-size:22px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.stat span{font-size:11px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.4px; display:block; overflow-wrap:anywhere}
+.tirbar{display:flex; height:26px; border-radius:8px; overflow:hidden; margin:10px 0 4px}
+.tirbar div{display:flex; align-items:center; justify-content:center; color:#fff; font-size:11.5px; font-weight:800; min-width:3px; overflow:hidden}
+.tirbar div span{white-space:nowrap; padding:0 2px}
+.tirlegend{display:flex; gap:8px; margin-top:6px; flex-wrap:wrap}
+.tirlegend div{display:flex; align-items:center; gap:5px; font-size:12px; color:var(--ink-soft)}
+.tirlegend i{width:11px; height:11px; border-radius:3px; flex:none}
+.tirlegend b{color:var(--ink); font-weight:800}
+.bars{display:flex; gap:14px; align-items:flex-end; height:92px; margin-top:10px; padding:0 4px}
+.bars .b{flex:1; display:flex; flex-direction:column; align-items:center; gap:5px}
+.bars .b i{width:100%; max-width:46px; border-radius:7px 7px 0 0; background:var(--petrol); font-style:normal; display:flex; align-items:flex-start; justify-content:center; color:#fff; font-size:11px; font-weight:800; padding-top:3px}
+.bars .b span{font-size:10.5px; color:var(--ink-soft); text-transform:uppercase}
+
+/* meniu */
+.mrow{display:flex; align-items:center; gap:12px; width:100%; text-align:left; padding:14px 4px; border-bottom:1px solid var(--line); font-size:15px; font-weight:600}
+.mrow .ico{font-size:19px; width:28px; text-align:center}
+.mrow small{display:block; font-weight:400; color:var(--ink-soft); font-size:12.5px}
+
+#banner{background:#FFF4DE; border:1px solid #EAD199; color:#7A5B12; border-radius:14px; padding:12px 14px; font-size:13.5px; margin-bottom:12px; display:none}
+#banner.urgent{background:#FBE4DC; border-color:#E0A491; color:#8A3418}
+html[data-theme="dark"] #banner.urgent{background:#3E2018; border-color:#7A3A28; color:#F0B9A8}
+#banner b{display:block; margin-bottom:2px}
+#banner button{color:var(--petrol); font-weight:800; padding:6px 0 0}
+
+#toast{position:fixed; bottom:calc(84px + env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%) translateY(20px);
+  background:#12242E; color:#fff; padding:10px 18px; border-radius:99px; font-size:14px; font-weight:600; opacity:0; transition:.25s; z-index:60; pointer-events:none; white-space:nowrap}
+#toast.on{opacity:1; transform:translateX(-50%)}
+
+/* raport medic: doar la tipărire */
+#report{display:none}
+@media print{
+  body>*{display:none !important}
+  body{background:#fff}
+  #report{display:block !important; font-size:12px; color:#000; padding:6mm}
+  #report h1{font-size:20px; margin-bottom:2px}
+  #report h2{font-size:14px; margin:14px 0 6px; border-bottom:2px solid #000; padding-bottom:3px}
+  #report table{width:100%; border-collapse:collapse; margin-top:4px}
+  #report th,#report td{border:1px solid #999; padding:3px 6px; text-align:left; vertical-align:top}
+  #report th{background:#eee}
+  #report .rmeta{color:#444; margin-bottom:8px}
+}
+@media (prefers-reduced-motion:reduce){ #sheet{transition:none} #toast{transition:opacity .1s} }
+</style>
+</head>
+<body>
+
+<header id="topbar">
+  <div class="brand">Gluco<span>Log</span></div>
+  <div class="who" id="whoami"></div>
+</header>
+
+<main>
+  <div id="banner"></div>
+
+  <!-- AZI -->
+  <section class="view on" id="v-today">
+    <div class="card" id="heroCard">
+      <div id="hero"></div>
+      <div class="mini3" id="mini3"></div>
+      <div id="spark"></div>
+    </div>
+    <div id="quick">
+      <button onclick="shGluc()"><span class="ico i-gluc">◉</span>Glicemie</button>
+      <button onclick="shMeal()"><span class="ico i-meal">🍽</span>Masă</button>
+      <button onclick="shIns()"><span class="ico i-ins">💉</span>Insulină</button>
+      <button onclick="shNote()"><span class="ico i-note">✎</span>Altele</button>
+    </div>
+    <div id="timeline"></div>
+  </section>
+
+  <!-- ISTORIC -->
+  <section class="view" id="v-hist">
+    <div id="hsearch">
+      <input class="inp" id="q" placeholder="Caută: aliment, notă, insulină…" oninput="renderHist()">
+    </div>
+    <div id="histbody"></div>
+  </section>
+
+  <!-- ALIMENTE -->
+  <section class="view" id="v-foods">
+    <button class="btn btn-p" onclick="shFood()">+ Aliment nou</button>
+    <div class="card" style="margin-top:12px">
+      <input class="inp" id="fq" placeholder="Caută în biblioteca ta…" oninput="renderFoods()">
+      <div id="foodlist"></div>
+    </div>
+  </section>
+
+  <!-- STATISTICI -->
+  <section class="view" id="v-stats">
+    <div class="chips" id="periodChips" style="margin-bottom:12px"></div>
+    <div id="statsbody"></div>
+  </section>
+
+  <!-- MAI MULT -->
+  <section class="view" id="v-more">
+    <div class="card">
+      <h2>Date & siguranță</h2>
+      <button class="mrow" onclick="backupNow()"><span class="ico">🛟</span><span>Backup acum<small>Salvează tot jurnalul într-un fișier (recomandat săptămânal)</small></span></button>
+      <button class="mrow" onclick="exportXLSX()"><span class="ico">📗</span><span>Export Excel (.xlsx)<small>Fișier Excel cu două foi: jurnalul și biblioteca de alimente</small></span></button>
+      <button class="mrow" onclick="exportCSV()"><span class="ico">📊</span><span>Export CSV<small>Tabel simplu, bun pentru reimport în GlucoLog</small></span></button>
+      <button class="mrow" onclick="document.getElementById('impfile').click()"><span class="ico">📥</span><span>Import<small>Backup GlucoLog (.json) sau tabel CSV</small></span></button>
+      <input type="file" id="impfile" accept=".json,.csv" style="display:none" onchange="importFile(this)">
+      <button class="mrow" onclick="shDelDay()"><span class="ico">🧹</span><span>Șterge o zi din jurnal<small>Util dacă o zi a ajuns dublată (Excel + aplicație)</small></span></button>
+    </div>
+    <div class="card">
+      <h2>Pentru medic</h2>
+      <button class="mrow" onclick="shReport()"><span class="ico">🩺</span><span>Raport pentru doctor<small>Imagine macro pe perioade, opțional cu jurnal detaliat · PDF din tipărire</small></span></button>
+    </div>
+    <div class="card">
+      <h2>Setări</h2>
+      <button class="mrow" onclick="shSettings()"><span class="ico">⚙️</span><span>Profil & ținte<small id="setSummary"></small></span></button>
+    </div>
+    <div class="card">
+      <h2>Despre & informații legale</h2>
+      <button class="mrow" onclick="shAbout()"><span class="ico">ℹ️</span><span>Ce este (și ce nu este) GlucoLog<small>Citește înainte de utilizare</small></span></button>
+      <button class="mrow" onclick="shPrivacy()"><span class="ico">🔒</span><span>Confidențialitate<small>Unde îți sunt datele</small></span></button>
+    </div>
+    <p class="muted" style="padding:0 6px">GlucoLog v1.13 · Jurnal personal. Nu este un dispozitiv medical și nu oferă sfaturi medicale.</p>
+  </section>
+</main>
+
+<nav id="tabs">
+  <button class="on" data-v="today" onclick="go('today')"><span class="ico">☀️</span>Azi</button>
+  <button data-v="hist" onclick="go('hist')"><span class="ico">🔍</span>Istoric</button>
+  <button data-v="foods" onclick="go('foods')"><span class="ico">🥖</span>Alimente</button>
+  <button data-v="stats" onclick="go('stats')"><span class="ico">📈</span>Statistici</button>
+  <button data-v="more" onclick="go('more')"><span class="ico">☰</span>Mai mult</button>
+</nav>
+
+<div id="veil" onclick="closeSheet()"></div>
+<div id="sheet"></div>
+<div id="gramveil"><div id="grambox"></div></div>
+<div id="toast"></div>
+<div id="report"></div>
+
+
+<script>
+/* ================= STOCARE ================= */
+const KEY='glucolog_v1';
+let S = load();
+function load(){
+  try{ const d=JSON.parse(localStorage.getItem(KEY)); if(d && d.events) return d; }catch(e){}
+  return { settings:{name:'', low:70, high:180, insulins:['Fiasp','Tresiba'], basal:'Tresiba', lastBackup:0},
+           foods:seedFoods(), events:[] };
+}
+function save(){ localStorage.setItem(KEY, JSON.stringify(S)); }
+function seedFoods(){
+  const f=(name,mode,val,fav)=>({id:uid(),name,mode,val,fav:!!fav,uses:0});
+  return [
+    f('Roll Kebab Mesopotamia (porție 300g)','portie',60.3,true),
+    f('Iaurt Activia căpșuni cu cereale','portie',27.5,true),
+    f('Pâine boierească neagră','per100',46,true),
+    f('Pâine grâu întreg Vel Pitar','per100',35,true),
+    f('Pâine pavé Auchan','per100',56.6),
+    f('Mâncare de cartofi','per100',20,true),
+    f('Piure de cartofi','per100',20,true),
+    f('Cartofi prăjiți (casă)','per100',38,true),
+    f('Banană (fără coajă)','per100',20,true),
+    f('Măr','per100',10),
+    f('Înghețată mică pe băț','portie',13,true),
+    f('Ciocolată Sweet & Safe','portie',10),
+    f('Ciorbă de perișoare (bol)','portie',10),
+    f('Chiflă Lidl cu cartofi','per100',49),
+    f('Mazăre Edenia','per100',10)
+  ];
+}
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+
+/* ================= UTILITARE ================= */
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const two=n=>String(n).padStart(2,'0');
+const MS_D=86400000;
+function dKey(ts){ const d=new Date(ts); return d.getFullYear()+'-'+two(d.getMonth()+1)+'-'+two(d.getDate()); }
+function tHM(ts){ const d=new Date(ts); return two(d.getHours())+':'+two(d.getMinutes()); }
+const LUNI=['ian','feb','mar','apr','mai','iun','iul','aug','sep','oct','nov','dec'];
+const ZILE=['Duminică','Luni','Marți','Miercuri','Joi','Vineri','Sâmbătă'];
+function dNice(ts){ const d=new Date(ts); return ZILE[d.getDay()]+', '+d.getDate()+' '+LUNI[d.getMonth()]+' '+d.getFullYear(); }
+function daypart(ts){ const h=new Date(ts).getHours();
+  if(h<11) return 'Dimineața'; if(h<17) return 'Prânz'; if(h<21) return 'Cină'; return 'Seara / noaptea'; }
+function rangeClass(v){ const s=S.settings;
+  if(v<s.low) return 'p-low'; if(v<=s.high) return 'p-ok'; if(v<=250) return 'p-high'; return 'p-vhigh'; }
+function rangeColor(v){ const s=S.settings;
+  if(v<s.low) return 'var(--low)'; if(v<=s.high) return 'var(--ok)'; if(v<=250) return 'var(--high)'; return 'var(--vhigh)'; }
+function toast(m){ const t=$('toast'); t.textContent=m; t.classList.add('on'); clearTimeout(t._x); t._x=setTimeout(()=>t.classList.remove('on'),1900); }
+function sortEv(){ S.events.sort((a,b)=>a.ts-b.ts); }
+function evOfDay(key){ return S.events.filter(e=>dKey(e.ts)===key); }
+function fmtHC(x){ return (Math.round(x*10)/10).toString().replace('.',','); }
+function median(a){ if(!a.length) return 0; const b=[...a].sort((x,y)=>x-y); const m=Math.floor(b.length/2);
+  return b.length%2 ? b[m] : (b[m-1]+b[m])/2; }
+function med(vals){ const v=vals.filter(x=>x>0); return v.length? Math.round(median(v)) : '—'; }
+function computeICR(evs){
+  // perechem fiecare masă (HC>0) cu bolusul cel mai apropiat de tip 'bolus' (±25 min)
+  const meals=evs.filter(e=>e.type==='meal'&&(e.meal.hc||0)>0);
+  const bol=evs.filter(e=>e.type==='ins'&&e.ins.kind==='bolus');
+  const used=new Set(), byPart={};
+  meals.forEach(m=>{
+    let best=-1, bd=26*60000;
+    bol.forEach((b,i)=>{ if(used.has(i))return; const d=Math.abs(b.ts-m.ts); if(d<bd){bd=d;best=i;} });
+    if(best>=0 && bd<=25*60000){ const u=bol[best].ins.u; used.add(best);
+      if(u>0 && m.meal.hc>=5 && m.meal.hc<=200){ const p=daypart(m.ts).replace(' / noaptea','');
+        (byPart[p]=byPart[p]||[]).push(m.meal.hc/u); } }
+  });
+  return byPart;
+}
+function computeISF(evs){
+  const gl=evs.filter(e=>e.type==='gluc');
+  const corr=evs.filter(e=>e.type==='ins'&&e.ins.kind==='corectie');
+  const vals=[]; let clean=0, dirty=0;
+  corr.forEach(c=>{
+    const before=gl.filter(g=>c.ts-g.ts>=0 && c.ts-g.ts<=30*60000);
+    const after=gl.filter(g=>g.ts-c.ts>=2*3600000 && g.ts-c.ts<=4*3600000);
+    if(!before.length||!after.length) return;
+    const gb=before.reduce((a,b)=>c.ts-a.ts<c.ts-b.ts?a:b).gluc.v;
+    const aft=after.reduce((a,b)=>a.ts<b.ts?a:b);
+    const ga=aft.gluc.v;
+    const food=evs.some(e=>e.ts>c.ts&&e.ts<aft.ts&&e.type==='meal');
+    const ins=evs.some(e=>e.ts>c.ts&&e.ts<=aft.ts&&e.type==='ins');
+    if(food||ins){ dirty++; return; }
+    const drop=gb-ga;
+    if(c.ins.u>0 && drop>0){ vals.push(drop/c.ins.u); clean++; }
+  });
+  return {vals, clean, dirty, total:corr.length};
+}
+function rangeLabel(dailyVals, unit){
+  const v=dailyVals.filter(x=>x>0);
+  if(!v.length) return '—';
+  const mn=Math.min(...v), mx=Math.max(...v), md=Math.round(median(v));
+  if(mn===mx) return mn+(unit||'');
+  return mn+'–'+mx+(unit||'')+' · tipic '+md;
+}
+function histLastDose(name){
+  for(let i=S.events.length-1;i>=0;i--){ const e=S.events[i];
+    if(e.type==='ins'&&e.ins.name===name) return e.ins.u; }
+  return ''; }
+
+/* ================= NAVIGARE ================= */
+function go(v){
+  document.querySelectorAll('.view').forEach(x=>x.classList.remove('on'));
+  $('v-'+v).classList.add('on');
+  document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on', b.dataset.v===v));
+  if(v==='today') renderToday();
+  if(v==='hist') renderHist();
+  if(v==='foods') renderFoods();
+  if(v==='stats') renderStats();
+  if(v==='more') renderMore();
+  window.scrollTo(0,0);
+}
+
+/* ================= FOAIE (bottom sheet) ================= */
+function openSheet(html){ $('sheet').innerHTML=html; $('veil').classList.add('on'); requestAnimationFrame(()=>$('sheet').classList.add('on')); }
+function closeSheet(){ $('sheet').classList.remove('on'); $('veil').classList.remove('on'); }
+let CONFIRM_CB=null;
+function shConfirm(msg, cb, opts){
+  opts=opts||{};
+  CONFIRM_CB=cb;
+  openSheet(`<h3>${esc(opts.title||'Ești sigur?')}</h3>
+    <p style="margin-bottom:18px">${msg}</p>
+    <button class="btn btn-danger" onclick="runConfirm()">${esc(opts.confirmLabel||'Șterge')}</button>
+    <button class="btn btn-g" onclick="closeSheet()">Anulează</button>`);
+}
+function runConfirm(){ const cb=CONFIRM_CB; CONFIRM_CB=null; closeSheet(); if(cb) cb(); }
+function timeRow(id, ts){
+  const d=new Date(ts||Date.now());
+  return `<div class="rowflex">
+    <div class="frow"><label>Data</label><input class="inp" type="date" id="${id}d" value="${dKey(d.getTime())}"></div>
+    <div class="frow"><label>Ora</label><input class="inp" type="time" id="${id}t" value="${tHM(d.getTime())}"></div>
+  </div>`;
+}
+function readTime(id){
+  const dv=$(''+id+'d').value, tv=$(''+id+'t').value;
+  if(!dv||!tv) return null;
+  return new Date(dv+'T'+tv).getTime();
+}
+
+/* ================= GLICEMIE ================= */
+function shGluc(ev){
+  const e=ev||{gluc:{v:'',src:S.settings.defSrc||'deget'}};
+  openSheet(`<h3>${ev?'Modifică glicemia':'Glicemie'}</h3>
+    <div class="frow"><input class="inp bignum num" id="gv" type="number" inputmode="numeric" placeholder="—" value="${e.gluc.v}"></div>
+    <div class="frow"><label>Sursă</label><div class="chips" id="gsrc">
+      <button class="chip ${e.gluc.src==='deget'?'on':''}" data-v="deget">Din deget</button>
+      <button class="chip ${e.gluc.src==='senzor'?'on':''}" data-v="senzor">Senzor</button>
+    </div></div>
+    ${timeRow('g', e.ts)}
+    <button class="btn btn-p" onclick="okGluc('${ev?ev.id:''}')">Salvează</button>
+    ${ev?'<button class="btn btn-d" onclick="delEv(\''+ev.id+'\')">Șterge intrarea</button>':''}`);
+  chipify('gsrc');
+  if(!ev) setTimeout(()=>{ const g=$('gv'); if(g) g.focus(); },250);
+}
+function chipify(id){ $(''+id).querySelectorAll('.chip').forEach(c=>c.onclick=()=>{ $(''+id).querySelectorAll('.chip').forEach(x=>x.classList.remove('on')); c.classList.add('on'); }); }
+function chipVal(id){ const c=$(''+id).querySelector('.chip.on'); return c?c.dataset.v:null; }
+function okGluc(id){
+  const v=parseFloat($('gv').value), ts=readTime('g');
+  if(!v||v<20||v>900){ toast('Introdu o valoare validă'); return; }
+  if(!ts){ toast('Verifică data și ora'); return; }
+  if(id){ const e=S.events.find(x=>x.id===id); e.ts=ts; e.gluc={v,src:chipVal('gsrc')}; }
+  else S.events.push({id:uid(), ts, type:'gluc', gluc:{v, src:chipVal('gsrc')}});
+  sortEv(); save(); closeSheet(); renderToday(); toast('Glicemie salvată');
+}
+
+/* ================= INSULINĂ ================= */
+function shIns(ev){
+  const s=S.settings;
+  const e=ev||{ins:{u:'', name:s.insulins[0], kind:'bolus'}};
+  const insChips=s.insulins.map(n=>`<button class="chip ${e.ins.name===n?'on':''}" data-v="${esc(n)}">${esc(n)}</button>`).join('');
+  openSheet(`<h3>${ev?'Modifică insulina':'Insulină'}</h3>
+    <div class="frow"><label>Insulină</label><div class="chips" id="iname">${insChips}</div></div>
+    <div class="frow"><label>Unități</label>
+      <input class="inp bignum num" id="uv" type="number" step="0.5" min="0.5" max="80" inputmode="decimal" placeholder="—" value="${e.ins.u}"></div>
+    <div class="frow"><label>Scop</label><div class="chips" id="ikind">
+      <button class="chip ${e.ins.kind==='bolus'?'on':''}" data-v="bolus">La masă</button>
+      <button class="chip ${e.ins.kind==='corectie'?'on':''}" data-v="corectie">Corecție</button>
+      <button class="chip ${e.ins.kind==='bazala'?'on':''}" data-v="bazala">Bazală</button>
+    </div></div>
+    ${timeRow('i', e.ts)}
+    <button class="btn btn-p" onclick="okIns('${ev?ev.id:''}')">Salvează</button>
+    ${ev?'<button class="btn btn-d" onclick="delEv(\''+ev.id+'\')">Șterge intrarea</button>':''}`);
+  chipify('iname'); chipify('ikind');
+  const setChip=(gid,v)=>{ const c=$(''+gid).querySelector(`.chip[data-v="${v}"]`);
+    if(c){ $(''+gid).querySelectorAll('.chip').forEach(x=>x.classList.remove('on')); c.classList.add('on'); } };
+  // Tresiba <-> Bazală, în ambele sensuri; dozele uzuale se pre-completează la intrări noi
+  $('iname').querySelectorAll('.chip').forEach(c=>{ const base=c.onclick; c.onclick=()=>{ base();
+    const nm=c.dataset.v;
+    setChip('ikind', nm===s.basal ? 'bazala' : (chipVal('ikind')==='bazala' ? 'bolus' : chipVal('ikind')));
+    if(!ev) $('uv').value = nm===s.basal ? ((s.lastU||{})[nm] || histLastDose(nm) || '') : '';
+  }; });
+  $('ikind').querySelectorAll('.chip').forEach(c=>{ const base=c.onclick; c.onclick=()=>{ base();
+    if(c.dataset.v==='bazala'){ setChip('iname', s.basal); if(!ev) $('uv').value=(s.lastU||{})[s.basal] || histLastDose(s.basal) || ''; }
+    else if(chipVal('iname')===s.basal){ setChip('iname', s.insulins[0]); if(!ev) $('uv').value=''; }
+  }; });
+  if(!ev) setTimeout(()=>{ const u=$('uv'); if(u) u.focus(); },250);
+}
+function okIns(id){
+  const u=parseFloat(String($('uv').value).replace(',','.')), ts=readTime('i');
+  if(!u||u<=0||u>80){ toast('Introdu unitățile de insulină'); return; }
+  if(!ts){ toast('Verifică data și ora'); return; }
+  const rec={u, name:chipVal('iname'), kind:chipVal('ikind')};
+  S.settings.lastU=Object.assign(S.settings.lastU||{}, {[rec.name]:u});
+  if(id){ const e=S.events.find(x=>x.id===id); e.ts=ts; e.ins=rec; }
+  else S.events.push({id:uid(), ts, type:'ins', ins:rec});
+  sortEv(); save(); closeSheet(); renderToday(); toast('Insulină salvată');
+}
+
+/* ================= MASĂ ================= */
+let M=null; // masă în lucru
+function shMeal(ev){
+  M = ev ? JSON.parse(JSON.stringify(ev.meal)) : {items:[], note:''};
+  M._edit = ev?ev.id:'';
+  M._ts = ev?ev.ts:Date.now();
+  openSheet(`<h3>${ev?'Modifică masa':'Masă'}</h3>
+    <div class="frow"><label>Adaugă aliment</label>
+      <input class="inp" id="msrch" placeholder="Scrie 2-3 litere… (ex: pâine)" oninput="mealHits()">
+      <div id="mhits"></div></div>
+    <div class="frow"><label>Rapide</label><div class="chips" id="mfav"></div></div>
+    <div id="mitems"></div>
+    <div id="mtotal"></div>
+    <div class="frow"><label>Notă (opțional)</label><input class="inp" id="mnote" value="${esc(M.note||'')}" placeholder="ex: mâncat în oraș"></div>
+    ${timeRow('m', M._ts)}
+    <button class="btn btn-p" onclick="okMeal()">Salvează masa</button>
+    ${ev?'<button class="btn btn-d" onclick="delEv(\''+ev.id+'\')">Șterge intrarea</button>':''}`);
+  drawFavChips(); drawMealItems();
+}
+function foodLabel(f){ return f.mode==='per100' ? fmtHC(f.val)+' HC / 100g' : fmtHC(f.val)+' HC / porție'; }
+function drawFavChips(){
+  const favs=[...S.foods].sort((a,b)=>(b.fav-a.fav)||(b.uses-a.uses)).slice(0,6);
+  $('mfav').innerHTML=favs.map(f=>`<button class="chip" onclick="pickFood('${f.id}')">${esc(f.name.split('(')[0].trim())}</button>`).join('')||'<span class="muted">Marchează favorite în tabul Alimente</span>';
+}
+function mealHits(){
+  const q=$('msrch').value.trim().toLowerCase();
+  if(q.length<2){ $('mhits').innerHTML=''; return; }
+  const hits=S.foods.filter(f=>f.name.toLowerCase().includes(q)).slice(0,6);
+  let h=hits.map(f=>`<button class="foodhit" onclick="pickFood('${f.id}')"><span>${esc(f.name)}</span><small>${foodLabel(f)}</small></button>`).join('');
+  h+=`<button class="foodhit" onclick="quickNewFood()"><span>➕ Adaugă „${esc($('msrch').value.trim())}" ca aliment nou</span></button>`;
+  $('mhits').innerHTML=h;
+}
+function quickNewFood(){ shFood(null, $('msrch').value.trim(), true); }
+function pickFood(fid){
+  const f=S.foods.find(x=>x.id===fid);
+  if(f.mode==='portie'){ addItem(f.name, null, f.val, fid); }
+  else{ askGrams(f); }
+}
+function askGrams(f){
+  const gv=$('gramveil');
+  $('grambox').innerHTML=`<h3>Câte grame?</h3>
+    <div class="sub">${esc(f.name)} · ${fmtHC(f.val)} HC / 100 g</div>
+    <input class="inp bignum num" id="gramin" type="number" inputmode="numeric" placeholder="—" step="1" min="1">
+    <div class="hcprev" id="grampv"></div>
+    <div class="acts">
+      <button class="cancel" onclick="closeGrams()">Anulează</button>
+      <button class="ok" onclick="okGrams('${f.id}')">Adaugă</button>
+    </div>`;
+  gv.classList.add('on');
+  const inp=$('gramin');
+  inp.oninput=()=>{ const gr=parseFloat(String(inp.value).replace(',','.'));
+    $('grampv').textContent = gr>0 ? '= '+fmtHC(gr*f.val/100)+' HC' : ''; };
+  inp.onkeydown=(e)=>{ if(e.key==='Enter') okGrams(f.id); };
+  setTimeout(()=>inp.focus(),250);
+}
+function closeGrams(){ $('gramveil').classList.remove('on'); }
+function okGrams(fid){
+  const f=S.foods.find(x=>x.id===fid);
+  const gr=parseFloat(String($('gramin').value).replace(',','.'));
+  if(!gr||gr<=0){ toast('Introdu gramajul'); return; }
+  addItem(f.name, gr, gr*f.val/100, fid);
+  closeGrams();
+}
+function addItem(name, grams, hc, fid){
+  M.items.push({name, grams, hc:Math.round(hc*10)/10, fid});
+  if($('msrch')){ $('msrch').value=''; $('mhits').innerHTML=''; }
+  drawMealItems();
+}
+function drawMealItems(){
+  const tot=M.items.reduce((a,i)=>a+(i.hc||0),0);
+  $('mitems').innerHTML=M.items.map((i,ix)=>
+    `<div class="mi"><b>${esc(i.name)}${i.grams?' · '+i.grams+' g':''}</b><span class="hc num">${fmtHC(i.hc)} HC</span><button onclick="M.items.splice(${ix},1);drawMealItems()">✕</button></div>`).join('')
+    || '<div class="muted" style="padding:6px 0">Nimic adăugat încă. Caută un aliment sau folosește butoanele rapide.</div>';
+  $('mtotal').textContent='Total: '+fmtHC(tot)+' HC';
+}
+function okMeal(){
+  const ts=readTime('m');
+  if(!ts){ toast('Verifică data și ora'); return; }
+  M.note=$('mnote').value.trim();
+  if(!M.items.length && !M.note){ toast('Adaugă cel puțin un aliment sau o notă'); return; }
+  M.hc=Math.round(M.items.reduce((a,i)=>a+(i.hc||0),0)*10)/10;
+  M.items.forEach(i=>{ const f=S.foods.find(x=>x.id===i.fid); if(f) f.uses++; });
+  const rec={items:M.items, hc:M.hc, note:M.note};
+  if(M._edit){ const e=S.events.find(x=>x.id===M._edit); e.ts=ts; e.meal=rec; }
+  else S.events.push({id:uid(), ts, type:'meal', meal:rec});
+  sortEv(); save(); closeSheet(); renderToday(); toast('Masă salvată');
+}
+
+/* ================= NOTE / ACTIVITATE / GREUTATE ================= */
+function shNote(ev){
+  const e=ev||{type:'note', note:{text:''}};
+  const isKg=e.type==='kg';
+  openSheet(`<h3>${ev?'Modifică':'Adaugă'}</h3>
+    <div class="frow"><label>Tip</label><div class="chips" id="ntype">
+      <button class="chip ${e.type==='note'?'on':''}" data-v="note">Notă</button>
+      <button class="chip ${e.type==='act'?'on':''}" data-v="act">Activitate</button>
+      <button class="chip ${isKg?'on':''}" data-v="kg">Greutate</button>
+    </div></div>
+    <div class="frow" id="ntextrow" style="display:${isKg?'none':'block'}"><label>Text</label>
+      <textarea class="inp" id="ntext" rows="3" placeholder="ex: plimbare 1h / condus / răcit">${esc(e.note?e.note.text:'')}</textarea></div>
+    <div class="frow" id="nkgrow" style="display:${isKg?'block':'none'}"><label>Kg</label>
+      <input class="inp bignum num" id="nkg" type="number" step="0.1" inputmode="decimal" value="${isKg?e.kg.v:''}"></div>
+    ${timeRow('n', e.ts)}
+    <button class="btn btn-p" onclick="okNote('${ev?ev.id:''}')">Salvează</button>
+    ${ev?'<button class="btn btn-d" onclick="delEv(\''+ev.id+'\')">Șterge intrarea</button>':''}`);
+  chipify('ntype');
+  $('ntype').querySelectorAll('.chip').forEach(c=>{ const old=c.onclick; c.onclick=()=>{ old();
+    const kg=c.dataset.v==='kg'; $('ntextrow').style.display=kg?'none':'block'; $('nkgrow').style.display=kg?'block':'none'; }; });
+}
+function okNote(id){
+  const ts=readTime('n'); if(!ts){ toast('Verifică data și ora'); return; }
+  const tp=chipVal('ntype');
+  let rec;
+  if(tp==='kg'){ const v=parseFloat($('nkg').value); if(!v){ toast('Introdu greutatea'); return; } rec={type:'kg', kg:{v}}; }
+  else{ const tx=$('ntext').value.trim(); if(!tx){ toast('Scrie ceva mai întâi'); return; } rec={type:tp, note:{text:tx}}; }
+  if(id){ const e=S.events.find(x=>x.id===id); e.ts=ts; e.type=rec.type;
+    if(rec.type==='kg'){ e.kg=rec.kg; delete e.note; } else { e.note=rec.note; delete e.kg; } }
+  else S.events.push({id:uid(), ts, ...rec});
+  sortEv(); save(); closeSheet(); renderToday(); toast('Salvat');
+}
+
+/* ================= ȘTERGERE / EDITARE ================= */
+function delEv(id){
+  shConfirm('Nu poți reveni asupra acestei acțiuni.', ()=>{
+    S.events=S.events.filter(e=>e.id!==id); save(); renderToday(); renderHist(); toast('Intrare ștearsă');
+  }, {title:'Ștergi definitiv această intrare?', confirmLabel:'Șterge intrarea'});
+}
+function editEv(id){
+  const e=S.events.find(x=>x.id===id); if(!e) return;
+  if(e.type==='gluc') shGluc(e); else if(e.type==='ins') shIns(e);
+  else if(e.type==='meal') shMeal(e); else shNote(e);
+}
+</script>
+
+<script>
+/* ================= RANDARE: AZI ================= */
+function eventCard(e){
+  const t=`<span class="t num">${tHM(e.ts)}</span>`;
+  let body='';
+  if(e.type==='gluc'){
+    body=`<div class="hl"><span class="pill ${rangeClass(e.gluc.v)} num">${e.gluc.v}</span> <span class="muted">mg/dl · ${e.gluc.src==='senzor'?'senzor':'din deget'}</span></div>`;
+  }else if(e.type==='ins'){
+    const k=e.ins.kind==='corectie'?'corecție':(e.ins.kind==='bazala'?'bazală':'la masă');
+    body=`<div class="hl num">💉 ${e.ins.u}U ${esc(e.ins.name)}</div><div class="sub">${k}</div>`;
+  }else if(e.type==='meal'){
+    const items=e.meal.items.map(i=>esc(i.name)+(i.grams?' ('+i.grams+'g)':'')).join(' + ');
+    body=`<div class="hl">🍽 ${e.meal.hc?'<span class="num">'+fmtHC(e.meal.hc)+' HC</span>':'Masă'}</div>
+          <div class="sub">${items}${e.meal.note?(items?' · ':'')+esc(e.meal.note):''}</div>`;
+  }else if(e.type==='kg'){
+    body=`<div class="hl num">⚖️ ${e.kg.v} kg</div>`;
+  }else{
+    body=`<div class="hl">${e.type==='act'?'🏃 Activitate':'📝 Notă'}</div><div class="sub">${esc(e.note.text)}</div>`;
+  }
+  return `<button class="ev" onclick="editEv('${e.id}')">${t}<span class="body">${body}</span></button>`;
+}
+function renderTimeline(el, evs){
+  if(!evs.length){
+    const lastAll=S.events[S.events.length-1];
+    el.innerHTML = lastAll
+      ? '<div class="card empty">Zi nouă. Nicio intrare încă azi. ☀️<br><span class="muted">Ultima intrare: '+dNice(lastAll.ts)+', la '+tHM(lastAll.ts)+'. Jurnalul complet e la Istoric.</span></div>'
+      : '<div class="card empty">Nicio intrare încă.<br>Folosește butoanele de mai sus; prima glicemie durează 5 secunde.</div>';
+    return; }
+  let html='', lastPart='';
+  let mealRun=[];  // grup de mese consecutive (≤45 min între ele)
+  const flushMeals=()=>{
+    if(mealRun.length){
+      const tot=mealRun.reduce((a,m)=>a+(m.meal.hc||0),0);
+      if(tot>0 && mealRun.length>1){
+        html+=`<div class="mealsum"><span class="lbl">Total masă:</span> <b>${fmtHC(tot)} HC</b> <span class="lbl">· ${mealRun.length} alimente</span></div>`;
+      }
+      mealRun=[];
+    }
+  };
+  evs.forEach(e=>{ const p=daypart(e.ts);
+    if(p!==lastPart){ flushMeals(); html+=`<div class="daypart">${p}</div>`; lastPart=p; }
+    if(e.type==='meal'){
+      if(mealRun.length && (e.ts - mealRun[mealRun.length-1].ts) > 45*60000) flushMeals();
+      html+=eventCard(e);
+      mealRun.push(e);
+    } else {
+      flushMeals();
+      html+=eventCard(e);
+    }
+  });
+  flushMeals();
+  el.innerHTML=html;
+}
+function renderToday(){
+  const key=dKey(Date.now()), evs=evOfDay(key);
+  // erou: ultima glicemie
+  const glucs=S.events.filter(e=>e.type==='gluc');
+  const last=glucs[glucs.length-1];
+  let hero;
+  if(!last){ hero='<div class="empty" style="flex:1">Adaugă prima glicemie ca să vezi aici starea ta „acum".</div>'; }
+  else{
+    const col=rangeColor(last.gluc.v);
+    const mins=Math.round((Date.now()-last.ts)/60000);
+    const ago = mins<60? 'acum '+mins+' min' : (dKey(last.ts)===key? 'azi la '+tHM(last.ts) : dNice(last.ts)+' '+tHM(last.ts));
+    const prev=glucs.length>1 && (last.ts-glucs[glucs.length-2].ts)<4*3600e3 ? glucs[glucs.length-2] : null;
+    let delta='';
+    if(prev){ const d=last.gluc.v-prev.gluc.v;
+      delta=`<div class="delta" style="color:${col}">${d>5?'↗':(d<-5?'↘':'→')} ${d>0?'+':''}${d} față de ${tHM(prev.ts)}</div>`; }
+    const pct=Math.max(.06, Math.min(1, last.gluc.v/300));
+    const C=2*Math.PI*52;
+    hero=`<div id="dial">
+        <svg width="118" height="118" viewBox="0 0 118 118">
+          <circle cx="59" cy="59" r="52" fill="none" stroke="var(--line)" stroke-width="10"/>
+          <circle cx="59" cy="59" r="52" fill="none" stroke="${col}" stroke-width="10" stroke-linecap="round"
+            stroke-dasharray="${(C*pct).toFixed(1)} ${C.toFixed(1)}"/>
+        </svg>
+        <div class="v"><b class="num" style="color:${col}">${last.gluc.v}</b><small>mg/dl</small></div>
+      </div>
+      <div class="side">${delta}<div class="ago">${ago} · ${last.gluc.src==='senzor'?'senzor':'din deget'}</div></div>`;
+  }
+  $('hero').innerHTML=hero;
+  // mini-statistici azi
+  const g=evs.filter(e=>e.type==='gluc').map(e=>e.gluc.v);
+  const hc=evs.filter(e=>e.type==='meal').reduce((a,e)=>a+(e.meal.hc||0),0);
+  const bol=evs.filter(e=>e.type==='ins'&&e.ins.kind!=='bazala').reduce((a,e)=>a+e.ins.u,0);
+  const baz=evs.filter(e=>e.type==='ins'&&e.ins.kind==='bazala').reduce((a,e)=>a+e.ins.u,0);
+  $('mini3').innerHTML=`
+    <div><b class="num">${g.length?Math.round(g.reduce((a,b)=>a+b,0)/g.length):'—'}</b><span>medie azi</span></div>
+    <div><b class="num">${fmtHC(hc)}</b><span>HC azi</span></div>
+    <div><b class="num">${bol||'—'}</b><span>rapidă U</span></div>
+    <div><b class="num">${baz||'—'}</b><span>bazală U</span></div>`;
+  renderSpark(evs);
+  renderTimeline($('timeline'), evs);
+  $('whoami').textContent=S.settings.name?S.settings.name+' · '+dNice(Date.now()):dNice(Date.now());
+}
+function renderSpark(evs){
+  const pts=evs.filter(e=>e.type==='gluc').map(e=>({x:new Date(e.ts).getHours()*60+new Date(e.ts).getMinutes(), v:e.gluc.v}));
+  if(pts.length<2){ $('spark').innerHTML=''; return; }
+  const s=S.settings, W=340, H=76, P=6;
+  const ymax=Math.max(260, ...pts.map(p=>p.v))+20, ymin=40;
+  const X=m=>P+(m/1439)*(W-2*P);
+  const Y=v=>H-P-((Math.min(v,ymax)-ymin)/(ymax-ymin))*(H-2*P-10);
+  const band=`<rect x="${P}" y="${Y(s.high)}" width="${W-2*P}" height="${Math.max(2,Y(s.low)-Y(s.high))}" fill="var(--petrol)" opacity="0.13" rx="3"/>`;
+  const line=pts.map((p,i)=>(i?'L':'M')+X(p.x).toFixed(1)+' '+Y(p.v).toFixed(1)).join(' ');
+  const dots=pts.map(p=>`<circle cx="${X(p.x).toFixed(1)}" cy="${Y(p.v).toFixed(1)}" r="3.4" fill="${rangeColor(p.v)}"/>`).join('');
+  const ticks=[0,6,12,18,24].map(h=>`<text x="${X(Math.min(h*60,1439)).toFixed(1)}" y="${H-1}" font-size="8.5" fill="var(--ink-soft)" text-anchor="middle">${two(h%24)}</text>`).join('');
+  $('spark').innerHTML=`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+    ${band}<path d="${line}" fill="none" stroke="var(--ink-soft)" stroke-width="1.6" opacity=".55"/>${dots}${ticks}</svg>`;
+}
+
+/* ================= ISTORIC + CĂUTARE ================= */
+function evText(e){
+  if(e.type==='gluc') return e.gluc.v+' '+e.gluc.src;
+  if(e.type==='ins') return e.ins.u+'U '+e.ins.name+' '+e.ins.kind;
+  if(e.type==='meal') return e.meal.items.map(i=>i.name).join(' ')+' '+(e.meal.note||'');
+  if(e.type==='kg') return e.kg.v+' kg greutate';
+  return e.note.text;
+}
+function mealTotalHtml(mealRun){
+  if(mealRun.length<2) return '';
+  const tot=mealRun.reduce((a,m)=>a+(m.meal.hc||0),0);
+  if(tot<=0) return '';
+  return `<div class="mealsum"><span class="lbl">Total masă:</span> <b>${fmtHC(tot)} HC</b> <span class="lbl">· ${mealRun.length} alimente</span></div>`;
+}
+function dayGroupedHtml(dayEvs){
+  // dayEvs: cronologic crescător; grupăm pe momente + subtotal HC pe rulaje de mese (≤45 min)
+  let html='', lastPart='', mealRun=[];
+  const flush=()=>{ if(mealRun.length){ html+=mealTotalHtml(mealRun); mealRun=[]; } };
+  dayEvs.forEach(e=>{ const p=daypart(e.ts);
+    if(p!==lastPart){ flush(); html+=`<div class="daypart">${p}</div>`; lastPart=p; }
+    if(e.type==='meal'){
+      if(mealRun.length && (e.ts-mealRun[mealRun.length-1].ts)>45*60000) flush();
+      html+=eventCard(e); mealRun.push(e);
+    } else { flush(); html+=eventCard(e); }
+  });
+  flush();
+  return html;
+}
+function renderHist(){
+  const q=$('q').value.trim().toLowerCase();
+  if(q){
+    // în căutare rămânem la lista plată filtrată (potriviri răzlețe), cu context la mese
+    let evs=[...S.events].reverse().filter(e=>evText(e).toLowerCase().includes(q)).slice(0,300);
+    if(!evs.length){ $('histbody').innerHTML='<div class="card empty">Nimic găsit pentru „'+esc(q)+'".</div>'; return; }
+    let html='<p class="muted" style="margin:2px 6px 10px">Atinge o masă din rezultate ca să vezi contextul: glicemii și insulină în jurul ei.</p>', lastDay='';
+    evs.forEach(e=>{ const k=dKey(e.ts);
+      if(k!==lastDay){ html+=`<div class="dayhead"><span>${dNice(e.ts)}</span></div>`; lastDay=k; }
+      html+= e.type==='meal' ? eventCard(e).replace('onclick="editEv','onclick="ctx') : eventCard(e);
+    });
+    $('histbody').innerHTML=html; return;
+  }
+  // fără căutare: zilele recente, fiecare grupată pe momente (ca la Azi)
+  const days=[...new Set(S.events.map(e=>dKey(e.ts)))].sort().reverse().slice(0,60);
+  if(!days.length){ $('histbody').innerHTML='<div class="card empty">Jurnalul e gol deocamdată.</div>'; return; }
+  let html='';
+  days.forEach(k=>{
+    const de=evOfDay(k).slice().sort((a,b)=>a.ts-b.ts);
+    const dg=de.filter(x=>x.type==='gluc').map(x=>x.gluc.v);
+    const avg=dg.length?Math.round(dg.reduce((a,b)=>a+b,0)/dg.length):null;
+    const hc=de.filter(x=>x.type==='meal').reduce((a,x)=>a+(x.meal.hc||0),0);
+    const meta=[avg?('medie '+avg):'', hc>0?(fmtHC(hc)+' HC'):''].filter(Boolean).join(' · ');
+    html+=`<div class="dayhead"><span>${dNice(de[0].ts)}</span><span class="muted num">${meta}</span></div>`;
+    html+=dayGroupedHtml(de);
+  });
+  $('histbody').innerHTML=html;
+}
+function ctx(id){
+  const e=S.events.find(x=>x.id===id); if(!e){return;}
+  const from=e.ts-2.5*3600e3, to=e.ts+4*3600e3;
+  const around=S.events.filter(x=>x.ts>=from && x.ts<=to);
+  openSheet(`<h3>Context · ${dNice(e.ts)}</h3>
+    <p class="muted" style="margin:0 0 10px">Fereastră: 2½ h înainte → 4 h după masă.</p>
+    ${around.map(eventCard).join('')}
+    <button class="btn btn-g" onclick="closeSheet()">Închide</button>`);
+}
+
+/* ================= ALIMENTE ================= */
+function shFood(f, presetName, fromMeal){
+  f=f||null;
+  openSheet(`<h3>${f?'Modifică alimentul':'Aliment nou'}</h3>
+    <div class="frow"><label>Nume</label><input class="inp" id="fname" value="${esc(f?f.name:(presetName||''))}" placeholder="ex: Pâine graham Lidl"></div>
+    <div class="frow"><label>Cum îl măsori?</label><div class="chips" id="fmode">
+      <button class="chip ${(!f||f.mode==='per100')?'on':''}" data-v="per100">HC la 100 g</button>
+      <button class="chip ${f&&f.mode==='portie'?'on':''}" data-v="portie">HC pe porție</button>
+    </div></div>
+    <div class="frow"><label>Carbohidrați (HC)</label><input class="inp bignum num" id="fval" type="number" step="0.1" inputmode="decimal" value="${f?f.val:''}" placeholder="—"></div>
+    <div class="frow"><label class="chips"><button class="chip ${f&&f.fav?'on':''}" id="ffav" onclick="this.classList.toggle('on')">★ Favorit (apare la Rapide)</button></label></div>
+    <button class="btn btn-p" onclick="okFood('${f?f.id:''}', ${fromMeal?'true':'false'})">Salvează alimentul</button>
+    ${f?'<button class="btn btn-d" onclick="delFood(\''+f.id+'\')">Șterge din bibliotecă</button>':''}`);
+  chipify('fmode');
+}
+function okFood(id, fromMeal){
+  const name=$('fname').value.trim(), val=parseFloat($('fval').value);
+  if(!name||!val){ toast('Completează numele și HC'); return; }
+  const rec={name, mode:chipVal('fmode'), val, fav:$('ffav').classList.contains('on')};
+  let f;
+  if(id){ f=S.foods.find(x=>x.id===id); Object.assign(f,rec); }
+  else{ f={id:uid(), uses:0, ...rec}; S.foods.push(f); }
+  save(); toast('Aliment salvat');
+  if(fromMeal){ shMealResume(f); } else { closeSheet(); renderFoods(); }
+}
+function shMealResume(f){
+  // ne întoarcem la masa în lucru și adăugăm direct alimentul nou
+  const items=M.items, note=M.note, edit=M._edit, ts=M._ts;
+  shMeal(edit?S.events.find(x=>x.id===edit):null);
+  M.items=items; M.note=note; drawMealItems();
+  pickFood(f.id);
+}
+function delFood(id){
+  shConfirm('Mesele deja salvate rămân neschimbate.', ()=>{
+    S.foods=S.foods.filter(f=>f.id!==id); save(); renderFoods();
+  }, {title:'Ștergi acest aliment din bibliotecă?', confirmLabel:'Șterge din bibliotecă'});
+}
+function renderFoods(){
+  const q=($('fq').value||'').trim().toLowerCase();
+  let fs=[...S.foods].sort((a,b)=>(b.fav-a.fav)||(b.uses-a.uses)||a.name.localeCompare(b.name,'ro'));
+  if(q) fs=fs.filter(f=>f.name.toLowerCase().includes(q));
+  $('foodlist').innerHTML=fs.map(f=>
+    `<button class="fooditem" onclick='shFood(S.foods.find(x=>x.id==="${f.id}"))'>
+      <span class="star">${f.fav?'★':'☆'}</span>
+      <span class="txt">
+        <span class="n">${esc(f.name)}</span>
+        <span class="d">${foodLabel(f)}${f.uses?' · folosit de '+f.uses+' ori':''}</span>
+      </span>
+    </button>`).join('') || '<div class="empty">Niciun aliment'+(q?' pentru „'+esc(q)+'"':'')+'.</div>';
+}
+
+/* ================= STATISTICI ================= */
+let PERIOD=30;
+function renderStats(){
+  $('periodChips').innerHTML=[7,30,90].map(p=>
+    `<button class="chip ${PERIOD===p?'on':''}" onclick="PERIOD=${p};renderStats()">${p} zile</button>`).join('');
+  const d0=new Date(); d0.setHours(0,0,0,0);
+  const from=d0.getTime()-(PERIOD-1)*MS_D;
+  const evs=S.events.filter(e=>e.ts>=from);
+  const g=evs.filter(e=>e.type==='gluc').map(e=>({v:e.gluc.v, ts:e.ts}));
+  if(!g.length){ $('statsbody').innerHTML='<div class="card empty">Nu există glicemii în ultimele '+PERIOD+' zile.</div>'; return; }
+  const vals=g.map(x=>x.v);
+  const avg=vals.reduce((a,b)=>a+b,0)/vals.length;
+  const a1c=(avg+46.7)/28.7;
+  const s=S.settings;
+  const nl=vals.filter(v=>v<s.low).length, ni=vals.filter(v=>v>=s.low&&v<=s.high).length, nh=vals.length-nl-ni;
+  const pl=Math.round(nl/vals.length*100), pi=Math.round(ni/vals.length*100), ph=100-pl-pi;
+  // medii pe momente ale zilei
+  const parts=['Dimineața','Prânz','Cină','Seara / noaptea'];
+  const short={'Dimineața':'Dim','Prânz':'Prânz','Cină':'Cină','Seara / noaptea':'Seara'};
+  const byPart=parts.map(p=>{ const pv=g.filter(x=>daypart(x.ts)===p).map(x=>x.v);
+    return {p, avg: pv.length?Math.round(pv.reduce((a,b)=>a+b,0)/pv.length):0, n:pv.length}; });
+  const maxAvg=Math.max(...byPart.map(b=>b.avg),1);
+  const days=new Set(evs.map(e=>dKey(e.ts))).size||1;
+  // insulina & mesele se calculează DOAR pe zile complete (azi, fiind în curs, ar strica mediile)
+  const todayStart=d0.getTime();
+  const cEvs=S.events.filter(e=>e.ts>=todayStart-PERIOD*MS_D && e.ts<todayStart);
+  const cDays=new Set(cEvs.map(e=>dKey(e.ts))).size||1;
+  const cIns=cEvs.filter(e=>e.type==='ins');
+  // agregăm PE ZI, apoi arătăm intervalul (min–max, tipic mediană); evită falsa precizie a mediilor
+  const rapidByDay={}, bazByDay={}, corrByDay={}, hcByDay={};
+  cEvs.forEach(e=>{ const k=dKey(e.ts);
+    if(e.type==='ins'){ if(e.ins.kind==='bazala') bazByDay[k]=(bazByDay[k]||0)+e.ins.u;
+      else { rapidByDay[k]=(rapidByDay[k]||0)+e.ins.u; if(e.ins.kind==='corectie') corrByDay[k]=(corrByDay[k]||0)+1; } }
+    if(e.type==='meal') hcByDay[k]=(hcByDay[k]||0)+(e.meal.hc||0);
+  });
+  const dayKeys=[...new Set(cEvs.map(e=>dKey(e.ts)))];
+  const arr=o=>dayKeys.map(k=>o[k]||0);
+  const bolMeals=cIns.filter(e=>e.ins.kind==='bolus').map(e=>e.ins.u);
+  const bazTip=median(Object.values(bazByDay));
+  $('statsbody').innerHTML=`
+    <div class="card"><h2>Glicemie · ultimele ${PERIOD} zile</h2>
+      <div class="statgrid">
+        <div class="stat"><b class="num">${Math.round(avg)}</b><span>medie mg/dl</span></div>
+        <div class="stat"><b class="num">${a1c.toFixed(1)}%</b><span>HbA1c estimat</span></div>
+        <div class="stat"><b class="num">${vals.length}</b><span>măsurători</span></div>
+        <div class="stat"><b class="num">${Math.round(vals.length/days*10)/10}</b><span>măsurători / zi</span></div>
+      </div>
+      <p class="muted" style="margin:10px 0 0">HbA1c estimat din media glicemiilor tale (formula ADA eAG). E o tendință orientativă, nu înlocuiește analiza de laborator, mai ales la măsurători punctuale din deget.</p>
+    </div>
+    <div class="card"><h2>Timp în țintă (${s.low}–${s.high})</h2>
+      <div class="tirbar">
+        ${pl?`<div style="flex:${pl};background:var(--low)">${pl>=14?'<span>'+pl+'%</span>':''}</div>`:''}
+        ${pi?`<div style="flex:${pi};background:var(--ok)">${pi>=14?'<span>'+pi+'%</span>':''}</div>`:''}
+        ${ph?`<div style="flex:${ph};background:var(--high)">${ph>=14?'<span>'+ph+'%</span>':''}</div>`:''}
+      </div>
+      <div class="tirlegend">
+        <div><i style="background:var(--low)"></i>sub țintă <b>${pl}%</b></div>
+        <div><i style="background:var(--ok)"></i>în țintă <b>${pi}%</b></div>
+        <div><i style="background:var(--high)"></i>peste <b>${ph}%</b></div>
+      </div>
+    </div>
+    <div class="card"><h2>Media pe momente ale zilei</h2>
+      <div class="bars">${byPart.map(b=>`<div class="b"><i style="height:${Math.round(b.avg/maxAvg*100)}%; background:${b.avg?rangeColor(b.avg):'var(--line)'}">${b.avg||''}</i><span>${short[b.p]}</span></div>`).join('')}</div>
+    </div>
+    <div class="card"><h2>Insulină & mese</h2>
+      <div class="statgrid">
+        <div class="stat"><b class="num">${med(arr(rapidByDay))}<small style="font-size:11px;font-weight:600"> U</small></b><span>rapidă / zi</span></div>
+        <div class="stat"><b class="num">${med(Object.values(bazByDay))}<small style="font-size:11px;font-weight:600"> U</small></b><span>bazală / zi</span></div>
+        <div class="stat"><b class="num">${med(bolMeals)}<small style="font-size:11px;font-weight:600"> U</small></b><span>rapidă / masă</span></div>
+        <div class="stat"><b class="num">${med(arr(corrByDay))}</b><span>corecții / zi</span></div>
+        <div class="stat"><b class="num">${med(arr(hcByDay))}</b><span>HC / zi</span></div>
+        <div class="stat"><b class="num">${cDays}</b><span>zile complete</span></div>
+      </div>
+      <p class="muted" style="margin:10px 0 0">Valorile sunt <b>doza tipică</b> (mediană) pe ultimele ${PERIOD} zile complete; ziua de azi, în curs, e exclusă. Variația reală: rapidă ${rangeLabel(arr(rapidByDay),'U')}/zi, bazală ${rangeLabel(Object.values(bazByDay),'U')}/zi, HC ${rangeLabel(arr(hcByDay),'')}/zi.</p>
+    </div>
+    ${(function(){
+      const icr=computeICR(cEvs); const isf=computeISF(cEvs);
+      const parts=['Dimineața','Prânz','Cină','Seara'];
+      const cells=parts.map(p=>{ const v=(icr[p]||[]).filter(x=>x>0);
+        return `<div class="stat"><b class="num">${v.length? Math.round(median(v)):'—'}${v.length?'<small style="font-size:11px;font-weight:600"> g/U</small>':''}</b><span>ICR ${p==='Dimineața'?'dim':p==='Prânz'?'prânz':p==='Cină'?'cină':'seara'}</span></div>`; }).join('');
+      const isfCell = isf.vals.length>=10
+        ? `<b class="num">${Math.round(median(isf.vals))}<small style="font-size:11px;font-weight:600"> mg/dl/U</small></b><span>ISF estimat</span>`
+        : `<b class="num">—</b><span>ISF (date puține)</span>`;
+      return `<div class="card"><h2>ICR & ISF observați</h2>
+        <div class="statgrid">${cells}<div class="stat">${isfCell}</div>
+          <div class="stat"><b class="num">${isf.clean}</b><span>corecții curate</span></div></div>
+        <p class="muted" style="margin:10px 0 0">ICR = câți g de carbohidrați acoperă 1 U rapidă (median, pe momente). ISF = cu cât scade glicemia la 1 U corecție, estimat doar din corecțiile fără mâncare în 2–4 h după. Sunt <b>valori descriptive din istoricul tău</b>, nu recomandări; utile de arătat medicului.</p>
+      </div>`;
+    })()}`;
+}
+</script>
+
+<script>
+/* ================= EXPORT / BACKUP / IMPORT ================= */
+function stamp(){ const d=new Date(); return d.getFullYear()+two(d.getMonth()+1)+two(d.getDate()); }
+function downloadOrShare(name, mime, content){
+  const blob=new Blob([content],{type:mime});
+  const file=new File([blob], name, {type:mime});
+  if(navigator.canShare && navigator.canShare({files:[file]})){
+    navigator.share({files:[file], title:name}).catch(()=>plainDownload(blob,name));
+  } else plainDownload(blob,name);
+}
+function plainDownload(blob,name){
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+function backupNow(){
+  const name='GlucoLog_backup_'+(S.settings.name||'profil')+'_'+stamp()+'.json';
+  downloadOrShare(name,'application/json',JSON.stringify(S,null,1));
+  S.settings.lastBackup=Date.now(); save(); bannerCheck(); toast('Backup generat, salvează-l în Drive');
+}
+const TYPE_RO={gluc:'Glicemie', meal:'Masă', ins:'Insulină', kg:'Greutate', note:'Notă', act:'Activitate'};
+function exportCSV(){
+  const {H, rows}=evRows();
+  const foodRows=S.foods.map(f=>({Data:'',Ora:'',Tip:'Aliment',Glicemie:'',Sursa:f.fav?'favorit':'',Insulina:'',Unitati:'',
+    Scop:f.mode,Alimente:f.name,HC:f.val,Greutate:'',Nota:''}));
+  rows.unshift(...foodRows);
+  const q=v=>{ v=String(v??''); return (v.includes(';')||v.includes('"')||v.includes('\n'))?'"'+v.replace(/"/g,'""')+'"':v; };
+  const csv='\uFEFF'+'sep=;\n'+H.join(';')+'\n'+rows.map(r=>H.map(h=>q(r[h])).join(';')).join('\n');
+  downloadOrShare('GlucoLog_'+(S.settings.name||'profil')+'_'+stamp()+'.csv','text/csv;charset=utf-8',csv);
+  toast('CSV generat, se deschide în Excel');
+}
+/* ================= EXPORT XLSX (generator propriu, zero dependențe) =================
+   Un .xlsx este o arhivă ZIP cu fișiere XML. Scriem ZIP-ul fără compresie
+   (metoda "store"), pe care Excel/LibreOffice/Google Sheets îl citesc normal.
+   Astfel exportul nativ Excel rămâne în spiritul aplicației: un singur fișier, offline. */
+const CRC_T=(()=>{ const t=new Uint32Array(256);
+  for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c=c&1?0xEDB88320^(c>>>1):c>>>1; t[n]=c>>>0; }
+  return t; })();
+function crc32(b){ let c=0xFFFFFFFF; for(let i=0;i<b.length;i++) c=CRC_T[(c^b[i])&0xFF]^(c>>>8); return (c^0xFFFFFFFF)>>>0; }
+const xenc=s=>new TextEncoder().encode(s);
+const xesc=s=>String(s??'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g,'');
+function zipStore(files){
+  const parts=[], central=[]; let off=0;
+  const d=new Date(), dT=((d.getHours()<<11)|(d.getMinutes()<<5)|(d.getSeconds()>>1))&0xFFFF;
+  const dD=(((d.getFullYear()-1980)<<9)|((d.getMonth()+1)<<5)|d.getDate())&0xFFFF;
+  const u16=v=>[v&255,(v>>8)&255], u32=v=>[v&255,(v>>>8)&255,(v>>>16)&255,(v>>>24)&255];
+  files.forEach(f=>{
+    const nm=xenc(f.name), crc=crc32(f.data), sz=f.data.length;
+    const lh=[...u32(0x04034b50),...u16(20),...u16(0x0800),...u16(0),...u16(dT),...u16(dD),
+      ...u32(crc),...u32(sz),...u32(sz),...u16(nm.length),...u16(0)];
+    parts.push(new Uint8Array(lh), nm, f.data);
+    central.push([...u32(0x02014b50),...u16(20),...u16(20),...u16(0x0800),...u16(0),...u16(dT),...u16(dD),
+      ...u32(crc),...u32(sz),...u32(sz),...u16(nm.length),...u16(0),...u16(0),...u16(0),...u16(0),...u32(0),...u32(off),...nm]);
+    off += lh.length + nm.length + sz;
+  });
+  const cdB=new Uint8Array([].concat(...central));
+  const eo=new Uint8Array([...u32(0x06054b50),...u16(0),...u16(0),...u16(files.length),...u16(files.length),
+    ...u32(cdB.length),...u32(off),...u16(0)]);
+  let tot=0; parts.forEach(p=>tot+=p.length); tot+=cdB.length+eo.length;
+  const out=new Uint8Array(tot); let p=0;
+  parts.forEach(x=>{ out.set(x,p); p+=x.length; });
+  out.set(cdB,p); p+=cdB.length; out.set(eo,p);
+  return out;
+}
+function colName(n){ let s=''; while(n>0){ const m=(n-1)%26; s=String.fromCharCode(65+m)+s; n=(n-1-m)/26; } return s; }
+function sheetXML(H, rows){
+  const cell=(c,r,v,hdr)=>{
+    const ref=colName(c)+r;
+    if(v===''||v===null||v===undefined) return '';
+    if(!hdr && typeof v==='number' && isFinite(v)) return `<c r="${ref}"><v>${v}</v></c>`;
+    return `<c r="${ref}" t="inlineStr"${hdr?' s="1"':''}><is><t xml:space="preserve">${xesc(v)}</t></is></c>`;
+  };
+  let x=`<row r="1">`+H.map((h,i)=>cell(i+1,1,h,true)).join('')+`</row>`;
+  rows.forEach((r,ri)=>{ x+=`<row r="${ri+2}">`+H.map((h,i)=>cell(i+1,ri+2,r[h],false)).join('')+`</row>`; });
+  const cols=H.map((h,i)=>`<col min="${i+1}" max="${i+1}" width="${
+    h==='Alimente'||h==='Aliment'?46:h==='Nota'?40:h==='Data'?11:h==='Ora'?7:12}" customWidth="1"/>`).join('');
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<dimension ref="A1:${colName(H.length)}${rows.length+1}"/>
+<sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>
+<cols>${cols}</cols><sheetData>${x}</sheetData>
+<autoFilter ref="A1:${colName(H.length)}${rows.length+1}"/></worksheet>`;
+}
+function buildXLSX(sheets){
+  const ov=sheets.map((s,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('');
+  const sh=sheets.map((s,i)=>`<sheet name="${xesc(s.name)}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join('');
+  const rel=sheets.map((s,i)=>`<Relationship Id="rId${i+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join('')
+    +`<Relationship Id="rId${sheets.length+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>`;
+  const files=[
+    {name:'[Content_Types].xml', data:xenc(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+<Default Extension="xml" ContentType="application/xml"/>
+<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+${ov}<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
+</Types>`)},
+    {name:'_rels/.rels', data:xenc(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+</Relationships>`)},
+    {name:'xl/workbook.xml', data:xenc(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+<sheets>${sh}</sheets></workbook>`)},
+    {name:'xl/_rels/workbook.xml.rels', data:xenc(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${rel}</Relationships>`)},
+    {name:'xl/styles.xml', data:xenc(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font></fonts>
+<fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF0E7C7B"/><bgColor indexed="64"/></patternFill></fill></fills>
+<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>
+<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+<cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/></cellXfs>
+<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>
+</styleSheet>`)}
+  ];
+  sheets.forEach((s,i)=>files.push({name:'xl/worksheets/sheet'+(i+1)+'.xml', data:xenc(sheetXML(s.H, s.rows))}));
+  return zipStore(files);
+}
+function evRows(){
+  const H=['Data','Ora','Tip','Glicemie','Sursa','Insulina','Unitati','Scop','Alimente','HC','Greutate','Nota'];
+  const rows=[...S.events].map(e=>{
+    const r={Data:dKey(e.ts), Ora:tHM(e.ts), Tip:TYPE_RO[e.type]||e.type, Glicemie:'',Sursa:'',Insulina:'',Unitati:'',Scop:'',Alimente:'',HC:'',Greutate:'',Nota:''};
+    if(e.type==='gluc'){ r.Glicemie=e.gluc.v; r.Sursa=e.gluc.src; }
+    if(e.type==='ins'){ r.Insulina=e.ins.name; r.Unitati=e.ins.u; r.Scop=e.ins.kind; }
+    if(e.type==='meal'){ r.Alimente=e.meal.items.map(i=>i.name+(i.grams?' ['+i.grams+'g]':'')+' = '+i.hc+'HC').join(' + '); r.HC=e.meal.hc||''; r.Nota=e.meal.note||''; }
+    if(e.type==='kg'){ r.Greutate=e.kg.v; }
+    if(e.type==='note'||e.type==='act'){ r.Nota=e.note.text; }
+    return r;
+  });
+  return {H, rows};
+}
+function exportXLSX(){
+  try{
+    const {H, rows}=evRows();
+    const fH=['Aliment','Mod','HC','Favorit','Folosit de'];
+    const fRows=S.foods.map(f=>({Aliment:f.name, Mod:f.mode==='per100'?'la 100 g':'pe porție',
+      HC:f.val, Favorit:f.fav?'da':'', 'Folosit de':f.uses||0}));
+    const buf=buildXLSX([{name:'Jurnal', H, rows},{name:'Alimente', H:fH, rows:fRows}]);
+    downloadOrShare('GlucoLog_'+(S.settings.name||'profil')+'_'+stamp()+'.xlsx',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', buf);
+    toast('Fișier Excel generat');
+  }catch(err){
+    toast('Exportul Excel nu a reușit; încearcă CSV');
+  }
+}
+function importFile(inp){
+  const f=inp.files[0]; if(!f) return; inp.value='';
+  if(f.size>15*1024*1024){ alert('Fișierul e prea mare (peste 15 MB). Verifică dacă e într-adevăr un backup GlucoLog.'); return; }
+  const rd=new FileReader();
+  rd.onerror=()=>alert('Fișierul nu a putut fi citit de pe dispozitiv. Încearcă din nou sau alege alt fișier.');
+  rd.onload=()=>{
+    const txt=String(rd.result||'');
+    const isJson=f.name.toLowerCase().endsWith('.json');
+    const isCsv=f.name.toLowerCase().endsWith('.csv');
+    if(!isJson && !isCsv){
+      alert('Tip de fișier nerecunoscut. GlucoLog acceptă doar:\n• backup .json (creat din „Backup acum")\n• tabel .csv (creat din „Export")');
+      return;
+    }
+    if(isJson){ importJSON(txt); } else { importCSVsafe(txt); }
+  };
+  rd.readAsText(f,'utf-8');
+}
+function importJSON(txt){
+  let d;
+  try{ d=JSON.parse(txt); }
+  catch(e){ alert('Fișierul .json pare deteriorat și nu a putut fi citit.\n\nDatele tale actuale NU au fost modificate. Încearcă alt backup.'); return; }
+  // validare structură
+  if(typeof d!=='object' || !d || !Array.isArray(d.events) || typeof d.settings!=='object' || !d.settings){
+    alert('Fișierul nu are structura unui backup GlucoLog.\n\nDatele tale actuale NU au fost modificate.'); return;
+  }
+  // validare minimală a câtorva evenimente (să fie cu adevărat GlucoLog)
+  const bad = d.events.some(e=>!e || typeof e!=='object' || typeof e.ts!=='number' || !e.type);
+  if(bad){ alert('Backupul conține intrări nevalide și nu a fost importat.\n\nDatele tale actuale NU au fost modificate.'); return; }
+  shConfirm('Înlocuiește COMPLET datele de pe acest telefon. Recomandat să faci întâi un backup al datelor curente.', ()=>{
+    if(!Array.isArray(d.foods)) d.foods=seedFoods();
+    S=d; sortEv(); save(); go('today'); toast('Backup restaurat cu succes');
+  }, {title:'Backup din '+esc(d.settings.name||'?')+' cu '+d.events.length+' intrări', confirmLabel:'Continuă, înlocuiește datele'});
+}
+function importCSVsafe(txt){
+  let r;
+  try{ r=importCSV(txt); }
+  catch(e){
+    alert('Fișierul CSV nu a putut fi procesat; pare deteriorat sau într-un format neașteptat.\n\nDatele tale actuale NU au fost modificate. Folosește un CSV exportat din GlucoLog.');
+    return;
+  }
+  if(r.error){
+    alert(r.error+'\n\nDatele tale actuale NU au fost modificate.');
+    return;
+  }
+  if(r.added===0 && r.foodsAdded===0){
+    alert('Nu s-a importat nimic nou.\n'+(r.skipped?('Cele '+r.skipped+' zile din fișier existau deja în aplicație.'):'Fișierul nu conținea intrări recunoscute.')); 
+    return;
+  }
+  let msg='Import reușit: '+r.added+' intrări noi'+(r.foodsAdded?(' și '+r.foodsAdded+' alimente'):'')+'.';
+  if(r.skipped) msg+='\n'+r.skipped+' zile existau deja și au fost sărite (protecție anti-dubluri).';
+  alert(msg);
+  go('today');
+}
+function importCSV(txt){
+  txt=String(txt||'').replace(/^\uFEFF/,'').replace(/^sep=.\r?\n/,'');
+  const firstLine=(txt.split('\n')[0]||'');
+  const lines=parseCSV(txt, firstLine.includes(';')?';':',');
+  if(!lines.length) return {error:'Fișierul CSV este gol.'};
+  const H=lines.shift().map(h=>h.trim());
+  const ix=n=>H.indexOf(n);
+  // validare header: trebuie să fie un CSV GlucoLog (măcar Data+Tip)
+  if(ix('Tip')<0 || (ix('Data')<0 && !H.includes('Alimente'))){
+    return {error:'Fișierul nu pare un CSV exportat din GlucoLog (lipsesc coloanele așteptate).'};
+  }
+  const seen=new Set(S.events.map(e=>e.ts+'|'+e.type));
+  const existingDays=new Set(S.events.map(e=>dKey(e.ts)));
+  const K2T={'Glicemie':'gluc','Masă':'meal','Masa':'meal','Insulină':'ins','Insulina':'ins','Greutate':'kg','Notă':'note','Nota':'note','Activitate':'act'};
+  // STAGING: construim în copii separate; comitem în S doar la final, dacă totul e ok
+  const newEvents=[], newFoods=[]; const skipped=new Set();
+  lines.forEach(c=>{
+    if(c.length<2) return;
+    if(c[ix('Tip')]==='Aliment'){
+      const name=(c[ix('Alimente')]||'').trim(), val=parseFloat(String(c[ix('HC')]).replace(',','.'));
+      if(name&&val>0 && !S.foods.some(f=>f.name.toLowerCase()===name.toLowerCase()) && !newFoods.some(f=>f.name.toLowerCase()===name.toLowerCase()))
+        newFoods.push({id:uid(),name,mode:c[ix('Scop')]==='portie'?'portie':'per100',val,fav:(c[ix('Sursa')]||'').includes('fav'),uses:0});
+      return;
+    }
+    if(ix('Data')<0 || !c[ix('Data')]) return;
+    if(existingDays.has(c[ix('Data')])){ skipped.add(c[ix('Data')]); return; }
+    const ts=new Date(c[ix('Data')]+'T'+(c[ix('Ora')]||'12:00')).getTime();
+    if(isNaN(ts)) return;
+    const tp=K2T[c[ix('Tip')]]; if(!tp) return;
+    if(seen.has(ts+'|'+tp)) return;
+    const e={id:uid(), ts, type:tp};
+    if(tp==='gluc'){ const v=parseFloat(c[ix('Glicemie')]); if(!v||v<20||v>900) return; e.gluc={v, src:c[ix('Sursa')]||'deget'}; }
+    if(tp==='ins'){ const u=parseFloat(c[ix('Unitati')]); if(!u||u<=0||u>100) return; e.ins={name:c[ix('Insulina')]||'Fiasp', u, kind:c[ix('Scop')]||'bolus'}; }
+    if(tp==='meal'){
+      const items=(c[ix('Alimente')]||'').split(' + ').filter(Boolean).map(x=>{
+        const m=x.match(/^(.*?)(?:\s*\[(\d+(?:[.,]\d+)?)g\])?\s*=\s*([\d.,]+)HC$/);
+        return m? {name:m[1].trim(), grams:m[2]?parseFloat(m[2].replace(',','.')):null, hc:parseFloat(m[3].replace(',','.'))||0} : {name:x.trim(), grams:null, hc:0};
+      });
+      e.meal={items, hc:parseFloat(String(c[ix('HC')]).replace(',','.'))||items.reduce((a,i)=>a+i.hc,0), note:c[ix('Nota')]||''};
+    }
+    if(tp==='kg'){ const v=parseFloat(String(c[ix('Greutate')]).replace(',','.')); if(!v||v<20||v>400) return; e.kg={v}; }
+    if(tp==='note'||tp==='act'){ const t=(c[ix('Nota')]||'').trim(); if(!t) return; e.note={text:t}; }
+    newEvents.push(e);
+  });
+  // COMIT: abia acum atingem datele reale
+  S.events.push(...newEvents);
+  S.foods.push(...newFoods);
+  sortEv(); save();
+  return {added:newEvents.length, foodsAdded:newFoods.length, skipped:skipped.size};
+}
+function parseCSV(txt, sep){
+  const out=[]; let row=[], cur='', inQ=false;
+  for(let i=0;i<txt.length;i++){
+    const ch=txt[i];
+    if(inQ){ if(ch==='"'){ if(txt[i+1]==='"'){cur+='"';i++;} else inQ=false; } else cur+=ch; }
+    else if(ch==='"') inQ=true;
+    else if(ch===sep){ row.push(cur); cur=''; }
+    else if(ch==='\n'||ch==='\r'){ if(cur!==''||row.length){ row.push(cur); out.push(row); row=[]; cur=''; } }
+    else cur+=ch;
+  }
+  if(cur!==''||row.length){ row.push(cur); out.push(row); }
+  return out;
+}
+
+/* ================= RAPORT MEDIC ================= */
+let RP={days:90, det:false};
+function shReport(){
+  openSheet(`<h3>Raport pentru doctor</h3>
+    <div class="frow"><label>Perioada</label><div class="chips" id="rper">
+      <button class="chip" data-v="30">30 zile</button>
+      <button class="chip on" data-v="90">90 zile</button>
+      <button class="chip" data-v="180">180 zile</button></div></div>
+    <div class="frow"><label>Nivel de detaliu</label><div class="chips" id="rlvl">
+      <button class="chip on" data-v="macro">Macro (doar imaginea de ansamblu)</button>
+      <button class="chip" data-v="micro">Detaliat (plus jurnalul pe zile)</button></div></div>
+    <p class="muted" style="margin:-4px 0 12px">Raportul detaliat include jurnalul complet al perioadei alese; la 90+ zile pot ieși multe pagini.</p>
+    <p class="muted">Se deschide fereastra de tipărire. Alege „Salvează ca PDF" și trimite-l sau pune-l în folderul Drive partajat.</p>
+    <button class="btn btn-p" onclick="doReport(parseInt(chipVal('rper')), chipVal('rlvl')==='micro')">Generează raportul</button>`);
+  chipify('rper'); chipify('rlvl');
+}
+function bucketLabel(ts, byWeek){
+  const d=new Date(ts);
+  if(byWeek){ const on=new Date(d); on.setDate(d.getDate()-((d.getDay()+6)%7));
+    return on.getDate()+' '+LUNI[on.getMonth()]+(on.getFullYear()!==new Date().getFullYear()?' '+on.getFullYear():''); }
+  return LUNI[d.getMonth()]+' '+d.getFullYear();
+}
+function bucketKey(ts, byWeek){
+  const d=new Date(ts);
+  if(byWeek){ const on=new Date(d); on.setDate(d.getDate()-((d.getDay()+6)%7)); return dKey(on.getTime()); }
+  return d.getFullYear()+'-'+two(d.getMonth()+1);
+}
+function doReport(days, detailed){
+  const d0=new Date(); d0.setHours(0,0,0,0);
+  const from=d0.getTime()-(days-1)*MS_D;
+  const evs=S.events.filter(e=>e.ts>=from);
+  const g=evs.filter(e=>e.type==='gluc').map(e=>({v:e.gluc.v,ts:e.ts}));
+  if(!g.length){ toast('Nu există date în această perioadă'); return; }
+  const s=S.settings, vals=g.map(x=>x.v);
+  const avg=vals.reduce((a,b)=>a+b,0)/vals.length, a1c=(avg+46.7)/28.7;
+  const nl=vals.filter(v=>v<s.low).length, ni=vals.filter(v=>v>=s.low&&v<=s.high).length;
+  const daysSet=[...new Set(evs.map(e=>dKey(e.ts)))].sort();
+  const nd=Math.max(daysSet.length,1);
+  const ins=evs.filter(e=>e.type==='ins');
+  const todayStart=d0.getTime();
+  const cEvs=S.events.filter(e=>e.ts>=todayStart-days*MS_D && e.ts<todayStart);
+  const cDays=new Set(cEvs.map(e=>dKey(e.ts))).size||1;
+  const cIns=cEvs.filter(e=>e.type==='ins');
+  const rapidByDay={}, bazByDay={}, corrByDay={}, hcByDay={};
+  cEvs.forEach(e=>{ const k=dKey(e.ts);
+    if(e.type==='ins'){ if(e.ins.kind==='bazala') bazByDay[k]=(bazByDay[k]||0)+e.ins.u;
+      else { rapidByDay[k]=(rapidByDay[k]||0)+e.ins.u; if(e.ins.kind==='corectie') corrByDay[k]=(corrByDay[k]||0)+1; } }
+    if(e.type==='meal') hcByDay[k]=(hcByDay[k]||0)+(e.meal.hc||0); });
+  const dk=[...new Set(cEvs.map(e=>dKey(e.ts)))];
+  const arr=o=>dk.map(k=>o[k]||0);
+  const bolMeals=cIns.filter(e=>e.ins.kind==='bolus').map(e=>e.ins.u);
+  const bazTip=median(Object.values(bazByDay));
+  const hcAll=cEvs.filter(e=>e.type==='meal').reduce((a,e)=>a+(e.meal.hc||0),0);
+  // evoluție pe săptămâni (≤35 zile) sau pe luni
+  const byWeek = days<=35;
+  const buckets={};
+  g.forEach(x=>{ const k=bucketKey(x.ts,byWeek); (buckets[k]=buckets[k]||{vs:[],ts:x.ts}).vs.push(x.v); });
+  ins.filter(e=>e.ins.kind==='corectie').forEach(e=>{ const k=bucketKey(e.ts,byWeek); if(buckets[k]) buckets[k].cor=(buckets[k].cor||0)+1; });
+  // insulina pe perioade: doar zile complete
+  const bDays={}, bBol={}, bBaz={};
+  cEvs.forEach(e=>{ const k=bucketKey(e.ts,byWeek); (bDays[k]=bDays[k]||new Set()).add(dKey(e.ts)); });
+  cIns.forEach(e=>{ const k=bucketKey(e.ts,byWeek);
+    if(e.ins.kind==='bazala'){ const dk=dKey(e.ts); (bBaz[k]=bBaz[k]||{}); bBaz[k][dk]=(bBaz[k][dk]||0)+e.ins.u; }
+    else bBol[k]=(bBol[k]||0)+e.ins.u; });
+  const trendRows=Object.keys(buckets).sort().map(k=>{
+    const b=buckets[k], m=b.vs.reduce((a,x)=>a+x,0)/b.vs.length;
+    const tir=Math.round(b.vs.filter(v=>v>=s.low&&v<=s.high).length/b.vs.length*100);
+    const hypo=b.vs.filter(v=>v<s.low).length;
+    const ndB=bDays[k]?bDays[k].size:0;
+    const rap=ndB? ((bBol[k]||0)/ndB).toFixed(1)+' U':'—';
+    const bz=bBaz[k]? median(Object.values(bBaz[k]))+' U':'—';
+    return `<tr><td>${byWeek?'Săpt. din ':''}${bucketLabel(b.ts,byWeek)}</td><td>${Math.round(m)}</td><td>${((m+46.7)/28.7).toFixed(1)}%</td><td>${tir}%</td><td>${hypo}</td><td>${b.cor||0}</td><td>${rap}</td><td>${bz}</td><td>${b.vs.length}</td></tr>`;
+  }).join('');
+  const parts=['Dimineața','Prânz','Cină','Seara / noaptea'];
+  const rowsPart=parts.map(p=>{ const pv=g.filter(x=>daypart(x.ts)===p).map(x=>x.v);
+    return `<tr><td>${p}</td><td>${pv.length?Math.round(pv.reduce((a,b)=>a+b,0)/pv.length):'—'}</td><td>${pv.length?Math.min(...pv):'—'}</td><td>${pv.length?Math.max(...pv):'—'}</td><td>${pv.length}</td></tr>`; }).join('');
+  const kg=evs.filter(e=>e.type==='kg');
+  let journal='';
+  if(detailed){
+    const jDays=[...daysSet].reverse();
+    journal='<h2>Jurnal detaliat, toate cele '+daysSet.length+' zile cu date din perioadă</h2><table><tr><th>Ziua</th><th>Evenimente</th></tr>'+
+      jDays.map(k=>{
+        const de=evOfDay(k).slice().sort((a,b)=>a.ts-b.ts);
+        const parts=['Dimineața','Prânz','Cină','Seara / noaptea'];
+        const evLine=e=>{
+          if(e.type==='gluc') return tHM(e.ts)+': glicemie '+e.gluc.v;
+          if(e.type==='ins') return tHM(e.ts)+': '+e.ins.u+'U '+e.ins.name+(e.ins.kind==='corectie'?' (corecție)':(e.ins.kind==='bazala'?' (bazală)':''));
+          if(e.type==='meal') return tHM(e.ts)+': masă '+(e.meal.hc?e.meal.hc+' HC: ':'')+e.meal.items.map(i=>i.name).join(', ').slice(0,180)+(e.meal.note?' · '+esc(e.meal.note):'');
+          if(e.type==='kg') return tHM(e.ts)+': greutate '+e.kg.v+' kg';
+          return tHM(e.ts)+': '+esc(e.note.text).slice(0,180);
+        };
+        let blocks='';
+        parts.forEach(p=>{
+          const pe=de.filter(e=>daypart(e.ts)===p);
+          if(!pe.length) return;
+          const hc=pe.filter(e=>e.type==='meal').reduce((a,e)=>a+(e.meal.hc||0),0);
+          const label=p.replace(' / noaptea','');
+          blocks+=`<div style="margin-top:4px"><b>${label}</b>${hc>0?` <span style="color:#B0672E">· ${fmtHC(hc)} HC</span>`:''}<br>`+
+                  pe.map(evLine).join('<br>')+'</div>';
+        });
+        return `<tr><td style="white-space:nowrap;vertical-align:top">${dNice(de[0].ts)}</td><td>${blocks}</td></tr>`;
+      }).join('')+'</table>';
+  }
+  $('report').innerHTML=`
+    <h1>Jurnal glicemic · ${esc(s.name||'')}</h1>
+    <div class="rmeta">Perioada: ultimele ${days} de zile, până la ${dNice(Date.now())} · ${daysSet.length} zile cu date · Țintă: ${s.low}–${s.high} mg/dl · Generat din GlucoLog</div>
+    <h2>Imagine de ansamblu</h2>
+    <table>
+      <tr><th>Medie glicemică</th><th>HbA1c estimat*</th><th>În țintă</th><th>Sub țintă (hipo)</th><th>Peste țintă</th><th>Măsurători</th><th>Măsurători / zi</th></tr>
+      <tr><td><b>${Math.round(avg)} mg/dl</b></td><td><b>${a1c.toFixed(1)}%</b></td><td>${Math.round(ni/vals.length*100)}%</td>
+          <td>${Math.round(nl/vals.length*100)}% (${nl})</td><td>${Math.round((vals.length-nl-ni)/vals.length*100)}%</td><td>${vals.length}</td><td>${(vals.length/nd).toFixed(1)}</td></tr>
+    </table>
+    <h2>Evoluția pe ${byWeek?'săptămâni':'luni'}</h2>
+    <table><tr><th>${byWeek?'Săptămâna':'Luna'}</th><th>Medie</th><th>A1c est.</th><th>În țintă</th><th>Hipo</th><th>Corecții</th><th>Rapidă/zi</th><th>Bazală/zi</th><th>Măsurători</th></tr>${trendRows}</table>
+    <h2>Glicemii pe momente ale zilei</h2>
+    <table><tr><th>Moment</th><th>Medie</th><th>Min</th><th>Max</th><th>Nr.</th></tr>${rowsPart}</table>
+    <h2>Insulină și mese, interval pe zile complete (ziua curentă exclusă)</h2>
+    <table><tr><th>Rapidă / zi</th><th>Rapidă / masă</th><th>Corecții / zi</th><th>Bazală / zi</th><th>HC / zi</th></tr>
+    <tr><td>${rangeLabel(arr(rapidByDay),' U')}</td><td>${rangeLabel(bolMeals,' U')}</td><td>${rangeLabel(arr(corrByDay),'')}</td><td>${rangeLabel(Object.values(bazByDay),' U')}</td><td>${rangeLabel(arr(hcByDay),'')}</td></tr></table>
+    ${(function(){
+      const icr=computeICR(cEvs); const isf=computeISF(cEvs);
+      const parts=['Dimineața','Prânz','Cină','Seara'];
+      const rows=parts.map(p=>{ const v=(icr[p]||[]).filter(x=>x>0);
+        return `<tr><td>${p}</td><td>${v.length? '1 U la '+Math.round(median(v))+' g':'—'}</td><td>${v.length? Math.round(Math.min(...v))+'–'+Math.round(Math.max(...v))+' g':'—'}</td><td>${v.length}</td></tr>`; }).join('');
+      const isfLine = isf.vals.length>=10
+        ? `~${Math.round(median(isf.vals))} mg/dl scădere la 1 U (interval ${Math.round(Math.min(...isf.vals))}–${Math.round(Math.max(...isf.vals))}, din ${isf.clean} corecții „curate")`
+        : `date insuficiente pentru o estimare fiabilă (doar ${isf.clean} corecții „curate" din ${isf.total})`;
+      return `<h2>Parametri derivați: ICR și ISF (observați, ziua curentă exclusă)</h2>
+        <p style="color:#444">Valori <b>descriptive</b>, derivate din raportul dintre carbohidrați/insulină și din corecții. Reflectă ce s-a practicat, nu sunt recomandări; interpretarea aparține medicului.</p>
+        <table><tr><th>Moment</th><th>ICR tipic (median)</th><th>Interval</th><th>Mese</th></tr>${rows}</table>
+        <p style="margin-top:6px"><b>ISF (factor de corecție) estimat:</b> ${isfLine}. Estimat doar din corecțiile fără mâncare sau alt bolus în intervalul de 2–4 h de observație.</p>`;
+    })()}
+    <p style="color:#444">Valorile sunt interval minim–maxim pe ${cDays} zile complete; „tipic" = mediana. Doza zilnică de bazală și dozele la masă se citesc astfel mai fidel decât ca medie unică.</p>
+    ${kg.length?`<h2>Greutate</h2><p>${kg[0].kg.v} kg (${dNice(kg[0].ts)}) → ${kg[kg.length-1].kg.v} kg (${dNice(kg[kg.length-1].ts)})</p>`:''}
+    <p>*HbA1c estimat din media măsurătorilor capilare (formula ADA eAG→A1c); tendință orientativă, nu înlocuiește dozarea de laborator.</p>
+    ${journal}`;
+  closeSheet();
+  window.print();
+}
+function shDelDay(){
+  openSheet(`<h3>Șterge o zi din jurnal</h3>
+    <div class="frow"><label>Data</label><input class="inp" type="date" id="dd" value="${dKey(Date.now())}"></div>
+    <p class="muted">Șterge toate intrările din ziua aleasă. Folosește-o când o zi a fost dublată, apoi poți reimporta CSV-ul: zilele goale se completează la loc din istoric.</p>
+    <button class="btn btn-p" onclick="okDelDay()">Șterge ziua</button>`);
+}
+function okDelDay(){
+  const v=$('dd').value; if(!v){ toast('Alege data'); return; }
+  const n=S.events.filter(e=>dKey(e.ts)===v).length;
+  if(!n){ toast('Nicio intrare în ziua aleasă'); return; }
+  shConfirm('Nu poți reveni asupra acestei acțiuni.', ()=>{
+    S.events=S.events.filter(e=>dKey(e.ts)!==v); save(); renderToday(); renderHist(); toast(n+' intrări șterse');
+  }, {title:'Ștergi definitiv '+n+' intrări din '+v+'?', confirmLabel:'Șterge ziua'});
+}
+
+/* ================= SETĂRI + ONBOARDING ================= */
+function shSettings(first){
+  const s=S.settings;
+  openSheet(`<h3>${first?'Bine ai venit! Hai să te setăm.':'Profil & ținte'}</h3>
+    <div class="frow"><label>Numele tău</label><input class="inp" id="sname" value="${esc(s.name)}" placeholder="ex: Costi"></div>
+    <div class="rowflex">
+      <div class="frow"><label>Țintă jos</label><input class="inp num" id="slow" type="number" value="${s.low}"></div>
+      <div class="frow"><label>Țintă sus</label><input class="inp num" id="shigh" type="number" value="${s.high}"></div>
+    </div>
+    <div class="rowflex">
+      <div class="frow"><label>Insulină rapidă</label><input class="inp" id="sins0" value="${esc(s.insulins[0])}"></div>
+      <div class="frow"><label>Insulină bazală</label><input class="inp" id="sins1" value="${esc(s.insulins[1])}"></div>
+    </div>
+    <div class="frow"><label>Sursă glicemie implicită</label><div class="chips" id="ssrc">
+      <button class="chip ${(s.defSrc||'deget')==='deget'?'on':''}" data-v="deget">Din deget</button>
+      <button class="chip ${s.defSrc==='senzor'?'on':''}" data-v="senzor">Senzor</button></div></div>
+    <div class="frow"><label>Temă</label><div class="chips" id="stheme">
+      <button class="chip ${(s.theme||'auto')==='auto'?'on':''}" data-v="auto">Auto</button>
+      <button class="chip ${s.theme==='light'?'on':''}" data-v="light">Luminoasă</button>
+      <button class="chip ${s.theme==='dark'?'on':''}" data-v="dark">Întunecată</button></div></div>
+    <button class="btn btn-p" onclick="okSettings(${first?'true':'false'})">${first?'Începem':'Salvează'}</button>
+    ${first?'<p class="muted" style="margin-top:10px">Datele rămân doar pe acest telefon. Aplicația îți va aminti săptămânal să faci un backup.</p>':''}`);
+  chipify('ssrc'); chipify('stheme');
+}
+function shConsent(){
+  $('veil').classList.add('on'); $('sheet').classList.add('on');
+  $('sheet').innerHTML=`<h3>Bine ai venit la GlucoLog 👋</h3>
+    <p><b>GlucoLog e un jurnal personal de diabet.</b> Notezi tu glicemiile, mesele și insulina, iar aplicația le organizează, îți arată tendințele și îți face rezumate pentru medic.</p>
+    <p style="margin-top:10px">Pe scurt, ca să fim în siguranță: <b>nu e un dispozitiv medical</b>, nu dă sfaturi și nu calculează doze. Deciziile de tratament rămân între tine și medicul tău (urgențe: 112). Datele stau doar pe telefonul tău.</p>
+    <p class="muted" style="margin-top:8px">Poți reciti oricând aceste detalii la <b>Mai mult → Despre</b>.</p>
+    <button class="btn btn-p" onclick="acceptConsent()">Am înțeles, să începem</button>`;
+}
+function acceptConsent(){
+  S.settings.accepted=Date.now(); save(); closeSheet();
+  if(!S.settings.name) shSettings(true);
+}
+function applyTheme(){
+  const pref=S.settings.theme||'auto';
+  const dark = pref==='dark' || (pref==='auto' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  document.documentElement.dataset.theme = dark?'dark':'light';
+}
+if(window.matchMedia){ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', ()=>{ if((S.settings.theme||'auto')==='auto') applyTheme(); }); }
+function okSettings(first){
+  const s=S.settings;
+  s.name=$('sname').value.trim();
+  s.low=parseInt($('slow').value)||70; s.high=parseInt($('shigh').value)||180;
+  s.insulins=[$('sins0').value.trim()||'Fiasp', $('sins1').value.trim()||'Tresiba'];
+  s.basal=s.insulins[1];
+  s.defSrc=chipVal('ssrc')||'deget';
+  s.theme=chipVal('stheme')||'auto';
+  applyTheme();
+  if(first && !s.lastBackup) s.lastBackup=Date.now();
+  save(); closeSheet(); renderToday(); renderMore();
+  if(first) setTimeout(shTour, 350);
+}
+let TOUR=0;
+const TOUR_STEPS=[
+  {ic:'☀️', t:'Notează în câteva atingeri', d:'Pe pagina <b>Azi</b>, cele patru butoane mari (Glicemie, Masă, Insulină, Altele) îți adaugă o intrare în câteva secunde. Ziua se construiește singură, în ordine.'},
+  {ic:'📈', t:'Vezi-ți tendințele', d:'La <b>Statistici</b> ai media, HbA1c estimat, timpul în țintă și dozele tipice. La <b>Istoric</b> cauți orice ai notat vreodată: un aliment, o zi, o situație.'},
+  {ic:'🛟', t:'Fă backup regulat', d:'Datele tale stau <b>doar pe acest telefon</b>. Din <b>Mai mult → Backup</b> salvezi un fișier (ex. în Google Drive); e plasa ta de siguranță dacă schimbi telefonul. Aplicația îți va aminti săptămânal.'}
+];
+function shTour(){
+  TOUR=0; renderTour();
+}
+function renderTour(){
+  const st=TOUR_STEPS[TOUR];
+  const last=TOUR===TOUR_STEPS.length-1;
+  const dots=TOUR_STEPS.map((_,i)=>`<span style="width:8px;height:8px;border-radius:9px;display:inline-block;background:${i===TOUR?'var(--petrol)':'var(--line)'}"></span>`).join(' ');
+  $('veil').classList.add('on'); $('sheet').classList.add('on');
+  $('sheet').innerHTML=`<div style="text-align:center;padding:4px 0 2px">
+      <div style="font-size:40px;line-height:1">${st.ic}</div>
+      <h3 style="margin:10px 0 4px">${st.t}</h3></div>
+    <p style="text-align:left">${st.d}</p>
+    <div style="display:flex;gap:6px;justify-content:center;margin:16px 0 4px">${dots}</div>
+    <button class="btn btn-p" onclick="tourNext()">${last?'Am înțeles, să începem!':'Mai departe'}</button>
+    ${!last?'<button class="btn btn-g" onclick="closeTour()">Sar peste</button>':''}`;
+}
+function tourNext(){ if(TOUR<TOUR_STEPS.length-1){ TOUR++; renderTour(); } else closeTour(); }
+function closeTour(){ closeSheet(); toast('Gata de folosit! 🎉'); }
+function shAbout(){
+  openSheet(`<h3>Ce este GlucoLog</h3>
+    <p>GlucoLog este un <b>jurnal personal</b> pentru notarea glicemiilor, meselor, dozelor de insulină și a altor observații, cu grafice și rezumate ale datelor pe care <b>tu</b> le introduci.</p>
+    <p style="margin-top:10px"><b>Ce NU este:</b></p>
+    <ul style="margin:6px 0 0 18px; padding:0; line-height:1.6">
+      <li>Nu este un dispozitiv medical.</li>
+      <li>Nu oferă sfaturi, diagnostice sau recomandări medicale.</li>
+      <li>Nu calculează și nu sugerează doze de insulină.</li>
+      <li>Nu înlocuiește glucometrul, senzorul, analizele de laborator sau medicul.</li>
+    </ul>
+    <p style="margin-top:10px">Cifrele afișate (medii, intervale, HbA1c estimat, precum și ICR și ISF) sunt <b>rezumate descriptive</b> ale datelor tale; reflectă ce ai practicat, nu sunt recomandări. ICR și ISF sunt derivate din raportul carbohidrați/insulină și din corecțiile tale, iar HbA1c estimat e o aproximare statistică din glicemii; toate pot diferi de realitatea clinică și se interpretează împreună cu medicul.</p>
+    <p style="margin-top:10px"><b>Deciziile privind tratamentul, inclusiv dozele de insulină, se iau exclusiv împreună cu medicul tău.</b> În caz de urgență medicală, sună la 112.</p>
+    <p class="muted" style="margin-top:10px">Autorul pune la dispoziție această aplicație „ca atare", fără garanții, și nu își asumă răspunderea pentru decizii luate pe baza ei.</p>
+    <button class="btn btn-g" onclick="closeSheet()">Am înțeles</button>`);
+}
+function shPrivacy(){
+  openSheet(`<h3>Confidențialitate</h3>
+    <p>Toate datele tale (glicemii, mese, insulină, note) sunt stocate <b>exclusiv pe acest dispozitiv</b>, în memoria locală a aplicației.</p>
+    <p style="margin-top:10px">GlucoLog <b>nu trimite nicio informație</b> către niciun server, autor sau terț. Nu există conturi, nu există urmărire, nu există publicitate. Funcționează complet offline.</p>
+    <p style="margin-top:10px">Backupurile (fișierele .json/.csv) și rapoartele pentru medic sunt generate local și partajate <b>doar de tine</b>, unde alegi tu (ex. Google Drive). Ai control complet asupra lor.</p>
+    <p style="margin-top:10px">Dacă dezinstalezi aplicația sau ștergi datele browserului, informațiile se pierd, de aceea backupul periodic e recomandat.</p>
+    <p style="margin-top:10px"><a href="privacy.html" target="_blank" style="color:var(--petrol);font-weight:700">Citește politica de confidențialitate completă →</a></p>
+    <button class="btn btn-g" onclick="closeSheet()">Închide</button>`);
+}
+function renderMore(){
+  const s=S.settings;
+  $('setSummary').textContent=(s.name||'Fără nume')+' · țintă '+s.low+'–'+s.high+' · '+s.insulins.join(' + ');
+}
+
+/* ================= BACKUP REMINDER ================= */
+function bannerCheck(){
+  const b=$('banner');
+  if(S.events.length<=3){ b.style.display='none'; return; }
+  const dd=Math.floor((Date.now()-(S.settings.lastBackup||0))/MS_D);
+  const never=!S.settings.lastBackup;
+  if(!never && dd<7){ b.style.display='none'; return; }
+  b.style.display='block';
+  b.classList.remove('urgent');
+  if(never){
+    b.innerHTML='<b>Nu ai făcut încă niciun backup.</b>Datele tale trăiesc doar pe acest telefon. Dacă îl schimbi sau ștergi aplicația, se pierd. Un backup durează 30 de secunde.<br><button onclick="backupNow()">Fă primul backup →</button>';
+  } else if(dd>=21){
+    b.classList.add('urgent');
+    b.innerHTML='<b>⚠ Au trecut '+dd+' de zile fără backup!</b>Riști să pierzi tot jurnalul dacă se întâmplă ceva cu telefonul. Fă un backup chiar acum, durează 30 de secunde.<br><button onclick="backupNow()">Fă backup acum →</button>';
+  } else if(dd>=14){
+    b.innerHTML='<b>Au trecut '+dd+' de zile de la ultimul backup.</b>Jurnalul e doar pe acest telefon. Merită 30 de secunde de siguranță.<br><button onclick="backupNow()">Fă backup acum →</button>';
+  } else {
+    b.innerHTML='<b>A trecut o săptămână de la ultimul backup.</b>30 de secunde de siguranță pentru jurnalul tău.<br><button onclick="backupNow()">Fă backup acum →</button>';
+  }
+}
+
+/* ================= START ================= */
+sortEv();
+applyTheme();
+renderToday(); renderMore(); bannerCheck();
+if(!S.settings.accepted){ shConsent(); }
+else if(!S.settings.name) shSettings(true);
+if('serviceWorker' in navigator && location.protocol==='https:'){
+  navigator.serviceWorker.register('./sw.js').catch(()=>{});
+}
+</script>
+
+</body>
+</html>
